@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Технические особенности — База знаний{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
+    <div>
+        <a href="/knowledge" class="text-sm hover:underline" style="color: var(--color-primary)">&larr; База знаний</a>
+        <h1 class="text-2xl font-bold mt-2">Технические особенности</h1>
+    </div>
+    <button onclick="document.getElementById('add-insight-form').classList.toggle('hidden')" class="btn-primary text-sm px-4 py-2 rounded">+ Добавить</button>
+</div>
+
+<!-- Форма добавления -->
+<div id="add-insight-form" class="card p-4 mb-4 hidden">
+    <form method="POST" action="/knowledge/insights/new" class="space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+                <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Заголовок *</label>
+                <input type="text" name="title" required class="input-themed w-full text-sm" placeholder="Суть заметки">
+            </div>
+            <div>
+                <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Автор</label>
+                <input type="text" name="author" class="input-themed w-full text-sm" placeholder="Кто поделился">
+            </div>
+        </div>
+        <div>
+            <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Содержание *</label>
+            <textarea name="content" rows="3" required class="input-themed w-full text-sm" placeholder="Подробное описание..."></textarea>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+                <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Теги (через запятую)</label>
+                <input type="text" name="tags" class="input-themed w-full text-sm" placeholder="котлы, давление, температура">
+            </div>
+            <div>
+                <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Категория продукции</label>
+                <select name="product_category" class="input-themed w-full text-sm">
+                    <option value="">Без категории</option>
+                    <option value="water">Вода</option>
+                    <option value="steam">Пар</option>
+                </select>
+            </div>
+        </div>
+        <button type="submit" class="btn-primary px-4 py-1.5 rounded text-sm">Добавить</button>
+    </form>
+</div>
+
+<!-- Фильтры -->
+<div class="card p-3 mb-4">
+    <form method="GET" action="/knowledge/insights" class="flex flex-wrap gap-3 items-end">
+        <div class="flex-1 min-w-48">
+            <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Поиск</label>
+            <input type="text" name="search" class="input-themed w-full text-sm" placeholder="По заголовку, содержанию, тегам..." value="{{ filter_search or '' }}">
+        </div>
+        <div>
+            <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Категория</label>
+            <select name="category" class="input-themed text-sm">
+                <option value="">Все</option>
+                <option value="water" {% if filter_category == 'water' %}selected{% endif %}>Вода</option>
+                <option value="steam" {% if filter_category == 'steam' %}selected{% endif %}>Пар</option>
+            </select>
+        </div>
+        <button type="submit" class="btn-primary text-sm px-3 py-1.5 rounded">Найти</button>
+        <a href="/knowledge/insights" class="text-sm px-3 py-1.5 rounded border" style="border-color: var(--color-border)">Сброс</a>
+    </form>
+</div>
+
+<!-- Список инсайтов -->
+{% if insights %}
+<div class="space-y-3">
+    {% for insight in insights %}
+    <div class="card p-4">
+        <div class="flex items-start justify-between gap-3">
+            <div class="flex-1 min-w-0">
+                <h3 class="font-medium">{{ insight.title }}</h3>
+                <p class="text-sm mt-1" style="color: var(--color-text-secondary)">{{ insight.content }}</p>
+                <div class="flex flex-wrap gap-2 mt-2 text-xs">
+                    {% if insight.author %}
+                    <span class="px-2 py-0.5 rounded" style="background: var(--color-primary-light); color: var(--color-primary)">{{ insight.author }}</span>
+                    {% endif %}
+                    {% if insight.product_category %}
+                    <span class="px-2 py-0.5 rounded" style="background: var(--color-surface); color: var(--color-text-secondary)">{{ 'Вода' if insight.product_category.value == 'water' else 'Пар' }}</span>
+                    {% endif %}
+                    {% if insight.tags %}
+                    {% for tag in insight.tags.split(',') %}
+                    <span class="px-2 py-0.5 rounded" style="background: var(--color-surface); color: var(--color-text-secondary)">#{{ tag.strip() }}</span>
+                    {% endfor %}
+                    {% endif %}
+                    <span style="color: var(--color-text-secondary)">{{ insight.created_at.strftime('%d.%m.%Y') if insight.created_at else '' }}</span>
+                </div>
+            </div>
+            <form method="POST" action="/knowledge/insights/{{ insight.id }}/delete" onsubmit="return confirm('Удалить?')">
+                <button type="submit" class="text-xs px-2 py-1" style="color: var(--color-danger)" title="Удалить">✕</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card p-6 text-center">
+    <p style="color: var(--color-text-secondary)">Записей пока нет</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,43 @@
+<div class="card p-4">
+    <h2 class="text-lg font-semibold mb-3">Календарь отгрузок</h2>
+
+    {% if shipments.within_7_days %}
+    <div class="mb-4">
+        <h3 class="text-sm font-medium mb-2" style="color: var(--color-danger)">В ближайшие 7 дней</h3>
+        {% for item in shipments.within_7_days %}
+        <div class="alert-danger p-3 rounded mb-2 text-sm flex justify-between items-center">
+            <div>
+                <span class="font-medium">{{ item.customer }}</span>
+                {% if item.equipment %} — {{ item.equipment }}{% endif %}
+                <span style="color: var(--color-text-secondary)">({{ item.manager_name }})</span>
+            </div>
+            <div class="text-right shrink-0 ml-4">
+                <div class="font-medium">{{ item.shipment_date }}</div>
+                <div style="color: var(--color-text-secondary)">через {{ item.days_until }} дн.</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if shipments.within_14_days %}
+    <div class="mb-4">
+        <h3 class="text-sm font-medium mb-2" style="color: var(--color-warning)">В ближайшие 14 дней</h3>
+        {% for item in shipments.within_14_days %}
+        <div class="alert-warning p-3 rounded mb-2 text-sm flex justify-between items-center">
+            <div>
+                <span class="font-medium">{{ item.customer }}</span>
+                {% if item.equipment %} — {{ item.equipment }}{% endif %}
+                <span style="color: var(--color-text-secondary)">({{ item.manager_name }})</span>
+            </div>
+            <div class="text-right shrink-0 ml-4">
+                <div class="font-medium">{{ item.shipment_date }}</div>
+                <div style="color: var(--color-text-secondary)">через {{ item.days_until }} дн.</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div id="shipment-calendar" class="mt-4"></div>
+</div>

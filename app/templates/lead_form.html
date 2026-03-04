@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{% if lead %}Редактировать сделку{% else %}Новая сделка{% endif %} — Sales Manager{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="/leads" class="text-sm hover:underline" style="color: var(--color-primary)">&larr; К списку сделок</a>
+    <h1 class="text-2xl font-bold mt-2">{% if lead %}Редактировать сделку{% else %}Новая сделка{% endif %}</h1>
+</div>
+
+<div class="card p-6 max-w-2xl">
+    <form method="POST" action="{% if lead %}/leads/{{ lead.id }}/edit{% else %}/leads/new{% endif %}">
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Менеджер *</label>
+                <select name="manager_id" required class="input-themed w-full">
+                    {% for emp in employees %}
+                    <option value="{{ emp.id }}" {% if lead and lead.manager_id == emp.id %}selected{% endif %}>{{ emp.full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">Заказчик *</label>
+                <input type="text" name="customer" required class="input-themed w-full" value="{{ lead.customer if lead else '' }}">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Статус</label>
+                    <select name="status" class="input-themed w-full">
+                        {% set status_labels = {'new': 'Новая', 'in_progress': 'В работе', 'negotiation': 'Переговоры', 'contract': 'Контракт', 'won': 'Выиграна', 'lost': 'Проиграна', 'stale': 'Неактивна'} %}
+                        {% for s in statuses %}
+                        <option value="{{ s }}" {% if lead and lead.status.value == s %}selected{% endif %}>{{ status_labels.get(s, s) }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Сумма (₽)</label>
+                    <input type="number" name="amount" step="0.01" class="input-themed w-full" value="{{ lead.amount if lead and lead.amount else '' }}">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">Оборудование</label>
+                <input type="text" name="equipment" class="input-themed w-full" value="{{ lead.equipment if lead and lead.equipment else '' }}">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">Следующий шаг</label>
+                <textarea name="next_step" rows="2" class="input-themed w-full">{{ lead.next_step if lead and lead.next_step else '' }}</textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Дата следующего шага</label>
+                    <input type="date" name="next_step_date" class="input-themed w-full" value="{{ lead.next_step_date if lead and lead.next_step_date else '' }}">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Плановая дата отгрузки</label>
+                    <input type="date" name="planned_shipment_date" class="input-themed w-full" value="{{ lead.planned_shipment_date if lead and lead.planned_shipment_date else '' }}">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">Заметки</label>
+                <textarea name="notes" rows="2" class="input-themed w-full">{{ lead.notes if lead and lead.notes else '' }}</textarea>
+            </div>
+
+            <div class="flex gap-3">
+                <button type="submit" class="btn-primary flex-1 py-2 rounded font-medium">{% if lead %}Сохранить{% else %}Создать{% endif %}</button>
+                {% if lead %}
+                <form method="POST" action="/leads/{{ lead.id }}/delete" class="inline" onsubmit="return confirm('Удалить сделку?')">
+                    <button type="submit" class="btn-danger py-2 px-4 rounded">Удалить</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

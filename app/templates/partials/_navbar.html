@@ -1,0 +1,37 @@
+<nav class="nav-themed sticky top-0 z-50 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="flex items-center justify-between h-14">
+            <div class="flex items-center gap-6">
+                <a href="/" class="font-bold text-lg" style="color: var(--color-primary)">Sales Manager</a>
+                <div class="hidden sm:flex items-center gap-4 text-sm">
+                    <a href="/" class="hover:opacity-80" style="color: var(--color-text)">Дашборд</a>
+                    <a href="/managers" class="hover:opacity-80" style="color: var(--color-text)">Менеджеры</a>
+                    <a href="/leads" class="hover:opacity-80" style="color: var(--color-text)">Сделки</a>
+                    <a href="/tasks" class="hover:opacity-80" style="color: var(--color-text)">Задачи</a>
+                    <a href="/knowledge" class="hover:opacity-80" style="color: var(--color-text)">База знаний</a>
+                </div>
+            </div>
+            <!-- Мобильное меню -->
+            <button id="mobile-menu-btn" class="sm:hidden p-2" style="color: var(--color-text)">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+    <!-- Мобильная навигация -->
+    <div id="mobile-menu" class="hidden sm:hidden border-t" style="border-color: var(--color-border); background: var(--color-nav-bg);">
+        <div class="px-4 py-3 space-y-2 text-sm">
+            <a href="/" class="block py-1" style="color: var(--color-text)">Дашборд</a>
+            <a href="/managers" class="block py-1" style="color: var(--color-text)">Менеджеры</a>
+            <a href="/leads" class="block py-1" style="color: var(--color-text)">Сделки</a>
+            <a href="/tasks" class="block py-1" style="color: var(--color-text)">Задачи</a>
+            <a href="/knowledge" class="block py-1" style="color: var(--color-text)">База знаний</a>
+        </div>
+    </div>
+    <script>
+        document.getElementById('mobile-menu-btn')?.addEventListener('click', function() {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        });
+    </script>
+</nav>

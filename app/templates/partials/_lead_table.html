@@ -1,0 +1,65 @@
+{% macro status_badge(status) %}
+    {% set colors = {
+        'new': 'background: var(--color-primary-light); color: var(--color-primary)',
+        'in_progress': 'background: #dbeafe; color: #2563eb',
+        'negotiation': 'background: var(--color-warning-light); color: var(--color-warning)',
+        'contract': 'background: #f3e8ff; color: #7c3aed',
+        'won': 'background: var(--color-success-light); color: var(--color-success)',
+        'lost': 'background: var(--color-danger-light); color: var(--color-danger)',
+        'stale': 'background: #f1f5f9; color: #64748b',
+    } %}
+    {% set labels = {
+        'new': 'Новая',
+        'in_progress': 'В работе',
+        'negotiation': 'Переговоры',
+        'contract': 'Контракт',
+        'won': 'Выиграна',
+        'lost': 'Проиграна',
+        'stale': 'Неактивна',
+    } %}
+    <span class="badge-status" style="{{ colors.get(status.value, '') }}">{{ labels.get(status.value, status.value) }}</span>
+{% endmacro %}
+
+{% if leads %}
+<div class="overflow-x-auto">
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="text-left" style="border-bottom: 2px solid var(--color-border);">
+                <th class="p-2">Заказчик</th>
+                <th class="p-2">Статус</th>
+                <th class="p-2">Оборудование</th>
+                <th class="p-2">Сумма</th>
+                <th class="p-2">Дата обн.</th>
+                <th class="p-2">След. шаг</th>
+                <th class="p-2">Отгрузка</th>
+                <th class="p-2"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lead in leads %}
+            <tr style="border-bottom: 1px solid var(--color-border);" class="hover:opacity-90">
+                <td class="p-2 font-medium">{{ lead.customer }}</td>
+                <td class="p-2">{{ status_badge(lead.status) }}</td>
+                <td class="p-2" style="color: var(--color-text-secondary)">{{ lead.equipment or '—' }}</td>
+                <td class="p-2">{% if lead.amount %}{{ "{:,.0f}".format(lead.amount) }} ₽{% else %}—{% endif %}</td>
+                <td class="p-2" style="color: var(--color-text-secondary)">{{ lead.update_date or '—' }}</td>
+                <td class="p-2">
+                    {% if lead.next_step %}
+                        <div class="text-xs">{{ lead.next_step[:50] }}{% if lead.next_step|length > 50 %}...{% endif %}</div>
+                        {% if lead.next_step_date %}
+                            <div class="text-xs" style="color: {{ 'var(--color-danger)' if lead.next_step_date < today else 'var(--color-text-secondary)' }}">{{ lead.next_step_date }}</div>
+                        {% endif %}
+                    {% else %}—{% endif %}
+                </td>
+                <td class="p-2">{{ lead.planned_shipment_date or '—' }}</td>
+                <td class="p-2">
+                    <a href="/leads/{{ lead.id }}/edit" class="text-xs hover:underline" style="color: var(--color-primary)">Ред.</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-sm py-4" style="color: var(--color-text-secondary)">Сделок пока нет</p>
+{% endif %}

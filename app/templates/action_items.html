@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Задачи — Sales Manager{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
+    <h1 class="text-2xl font-bold">Задачи и цели</h1>
+    <button onclick="document.getElementById('new-task-form').classList.toggle('hidden')" class="btn-primary text-sm px-4 py-2 rounded">+ Новая задача</button>
+</div>
+
+<!-- Форма создания -->
+<div id="new-task-form" class="card p-4 mb-4 hidden">
+    <form method="POST" action="/tasks/new" class="space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+                <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Менеджер *</label>
+                <select name="manager_id" required class="input-themed w-full text-sm">
+                    {% for emp in employees %}
+                    <option value="{{ emp.id }}">{{ emp.full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="sm:col-span-2">
+                <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Задача *</label>
+                <input type="text" name="title" required class="input-themed w-full text-sm" placeholder="Описание задачи">
+            </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+                <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Приоритет</label>
+                <select name="priority" class="input-themed w-full text-sm">
+                    {% set priority_labels = {'low': 'Низкий', 'medium': 'Средний', 'high': 'Высокий', 'critical': 'Критический'} %}
+                    {% for p in priorities %}
+                    <option value="{{ p }}" {% if p == 'medium' %}selected{% endif %}>{{ priority_labels.get(p, p) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Срок</label>
+                <input type="date" name="due_date" class="input-themed w-full text-sm">
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="btn-primary w-full py-1.5 rounded text-sm">Создать</button>
+            </div>
+        </div>
+        <div>
+            <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Описание</label>
+            <textarea name="description" rows="2" class="input-themed w-full text-sm" placeholder="Подробности..."></textarea>
+        </div>
+    </form>
+</div>
+
+<!-- Фильтры -->
+<div class="card p-3 mb-4">
+    <form method="GET" action="/tasks" class="flex flex-wrap gap-3 items-end">
+        <div>
+            <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Менеджер</label>
+            <select name="manager_id" class="input-themed text-sm">
+                <option value="">Все</option>
+                {% for emp in employees %}
+                <option value="{{ emp.id }}" {% if filter_manager_id == emp.id %}selected{% endif %}>{{ emp.full_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Статус</label>
+            <select name="status" class="input-themed text-sm">
+                <option value="">Все</option>
+                {% set status_labels = {'pending': 'Ожидает', 'in_progress': 'В работе', 'completed': 'Выполнена', 'overdue': 'Просрочена'} %}
+                {% for s in statuses %}
+                <option value="{{ s }}" {% if filter_status == s %}selected{% endif %}>{{ status_labels.get(s, s) }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn-primary text-sm px-3 py-1.5 rounded">Фильтр</button>
+        <a href="/tasks" class="text-sm px-3 py-1.5 rounded border" style="border-color: var(--color-border)">Сброс</a>
+    </form>
+</div>
+
+<!-- Список задач -->
+{% if tasks %}
+<div class="space-y-2">
+    {% set priority_colors = {'low': 'var(--color-text-secondary)', 'medium': 'var(--color-primary)', 'high': 'var(--color-warning)', 'critical': 'var(--color-danger)'} %}
+    {% set status_colors = {'pending': 'var(--color-warning)', 'in_progress': 'var(--color-primary)', 'completed': 'var(--color-success)', 'overdue': 'var(--color-danger)'} %}
+    {% set status_labels = {'pending': 'Ожидает', 'in_progress': 'В работе', 'completed': 'Выполнена', 'overdue': 'Просрочена'} %}
+    {% set priority_labels = {'low': 'Низкий', 'medium': 'Средний', 'high': 'Высокий', 'critical': 'Критический'} %}
+
+    {% for task in tasks %}
+    <div class="card p-3">
+        <div class="flex items-start justify-between gap-3">
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="w-2 h-2 rounded-full shrink-0" style="background: {{ priority_colors.get(task.priority.value, 'var(--color-text)') }}"></span>
+                    <span class="font-medium text-sm">{{ task.title }}</span>
+                </div>
+                {% if task.description %}
+                <p class="text-xs ml-4" style="color: var(--color-text-secondary)">{{ task.description[:120] }}{% if task.description|length > 120 %}...{% endif %}</p>
+                {% endif %}
+                <div class="flex flex-wrap gap-3 mt-1 ml-4 text-xs" style="color: var(--color-text-secondary)">
+                    <span>{{ task.manager.full_name }}</span>
+                    {% if task.due_date %}
+                    <span style="color: {{ 'var(--color-danger)' if task.due_date < today else 'inherit' }}">Срок: {{ task.due_date }}</span>
+                    {% endif %}
+                    <span class="badge-status" style="color: {{ status_colors.get(task.status.value, '') }}">{{ status_labels.get(task.status.value, task.status.value) }}</span>
+                    <span style="color: {{ priority_colors.get(task.priority.value, '') }}">{{ priority_labels.get(task.priority.value, task.priority.value) }}</span>
+                </div>
+            </div>
+            <div class="flex gap-1 shrink-0">
+                {% if task.status.value != 'completed' %}
+                <form method="POST" action="/tasks/{{ task.id }}/complete">
+                    <button type="submit" class="text-xs px-2 py-1 rounded" style="background: var(--color-success-light); color: var(--color-success)" title="Выполнено">✓</button>
+                </form>
+                {% endif %}
+                <form method="POST" action="/tasks/{{ task.id }}/delete" onsubmit="return confirm('Удалить задачу?')">
+                    <button type="submit" class="text-xs px-2 py-1 rounded" style="color: var(--color-danger)" title="Удалить">✕</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card p-6 text-center">
+    <p style="color: var(--color-text-secondary)">Задач пока нет</p>
+</div>
+{% endif %}
+{% endblock %}

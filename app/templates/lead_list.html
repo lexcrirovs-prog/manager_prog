@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Сделки — Sales Manager{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
+    <h1 class="text-2xl font-bold">Сделки</h1>
+    <a href="/leads/new" class="btn-primary text-sm px-4 py-2 rounded inline-block">+ Новая сделка</a>
+</div>
+
+<!-- Фильтры -->
+<div class="card p-4 mb-4">
+    <form method="GET" action="/leads" class="flex flex-wrap gap-3 items-end">
+        <div>
+            <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Менеджер</label>
+            <select name="manager_id" class="input-themed text-sm">
+                <option value="">Все</option>
+                {% for emp in employees %}
+                <option value="{{ emp.id }}" {% if filter_manager_id == emp.id %}selected{% endif %}>{{ emp.full_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Статус</label>
+            <select name="status" class="input-themed text-sm">
+                <option value="">Все</option>
+                {% for s in statuses %}
+                <option value="{{ s }}" {% if filter_status == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn-primary text-sm px-4 py-1.5 rounded">Фильтр</button>
+        <a href="/leads" class="text-sm px-4 py-1.5 rounded border" style="border-color: var(--color-border)">Сброс</a>
+    </form>
+</div>
+
+<!-- Таблица -->
+{% set today = today if today is defined else none %}
+{% include "partials/_lead_table.html" %}
+{% endblock %}

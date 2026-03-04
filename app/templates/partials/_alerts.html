@@ -1,0 +1,34 @@
+{% if alerts and alerts.total_count > 0 %}
+<div class="card p-4 mb-6">
+    <h2 class="text-lg font-semibold mb-3" style="color: var(--color-danger)">
+        ⚠ Требует внимания ({{ alerts.total_count }})
+    </h2>
+
+    {% if alerts.stale_leads %}
+    <div class="mb-4">
+        <h3 class="text-sm font-medium mb-2" style="color: var(--color-text-secondary)">Устаревшие лиды</h3>
+        {% for alert in alerts.stale_leads %}
+        <div class="alert-danger p-3 rounded mb-2 text-sm">
+            <a href="/managers/{{ alert.manager_id }}" class="font-medium hover:underline" style="color: var(--color-primary)">{{ alert.manager_name }}</a>:
+            лид «<a href="/leads/{{ alert.lead_id }}/edit" class="hover:underline" style="color: var(--color-primary)">{{ alert.customer }}</a>»
+            — последний контакт {{ alert.days_since_update }} дн. назад
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if alerts.missed_followups %}
+    <div>
+        <h3 class="text-sm font-medium mb-2" style="color: var(--color-text-secondary)">Пропущенные follow-up'ы</h3>
+        {% for alert in alerts.missed_followups %}
+        <div class="alert-warning p-3 rounded mb-2 text-sm">
+            <a href="/managers/{{ alert.manager_id }}" class="font-medium hover:underline" style="color: var(--color-primary)">{{ alert.manager_name }}</a>:
+            «{{ alert.next_step or 'Следующий шаг' }}» по
+            «<a href="/leads/{{ alert.lead_id }}/edit" class="hover:underline" style="color: var(--color-primary)">{{ alert.customer }}</a>»
+            — просрочен на {{ alert.days_overdue }} дн.
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endif %}

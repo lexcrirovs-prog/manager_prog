@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}{{ employee.full_name }} — Sales Manager{% endblock %}
+
+{% block content %}
+<!-- Заголовок -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
+    <div>
+        <h1 class="text-2xl font-bold">{{ employee.full_name }}</h1>
+        <p class="text-sm" style="color: var(--color-text-secondary)">{{ employee.role }} — {{ employee.regions }}</p>
+    </div>
+    <div class="flex gap-2">
+        <a href="/managers/{{ employee.id }}/upload" class="btn-primary text-sm px-4 py-2 rounded">Загрузить отчёт</a>
+        <a href="/managers/{{ employee.id }}/record-sale" class="text-sm px-4 py-2 rounded border" style="border-color: var(--color-border)">Записать продажу</a>
+    </div>
+</div>
+
+<!-- Табы -->
+<div class="flex gap-1 mb-4 text-sm overflow-x-auto" style="border-bottom: 2px solid var(--color-border);">
+    <button class="tab-btn px-4 py-2 font-medium" data-tab="leads" style="border-bottom: 2px solid var(--color-primary); color: var(--color-primary);">Сделки ({{ leads|length }})</button>
+    <button class="tab-btn px-4 py-2" data-tab="tasks" style="color: var(--color-text-secondary)">Задачи ({{ action_items|length }})</button>
+    <button class="tab-btn px-4 py-2" data-tab="transcripts" style="color: var(--color-text-secondary)">Транскрипты ({{ transcripts|length }})</button>
+    <button class="tab-btn px-4 py-2" data-tab="sales" style="color: var(--color-text-secondary)">Продажи ({{ sales|length }})</button>
+</div>
+
+<!-- Таб: Сделки -->
+<div id="tab-leads" class="tab-content">
+    {% with leads=leads, today=today %}
+    {% include "partials/_lead_table.html" %}
+    {% endwith %}
+</div>
+
+<!-- Таб: Задачи -->
+<div id="tab-tasks" class="tab-content hidden">
+    {% if action_items %}
+    <div class="space-y-2">
+        {% for task in action_items %}
+        <div class="card p-3 flex items-center justify-between">
+            <div class="flex-1">
+                <div class="font-medium text-sm">{{ task.title }}</div>
+                {% if task.description %}
+                <div class="text-xs mt-1" style="color: var(--color-text-secondary)">{{ task.description[:100] }}</div>
+                {% endif %}
+                <div class="flex gap-3 mt-1 text-xs" style="color: var(--color-text-secondary)">
+                    {% if task.due_date %}
+                    <span style="color: {{ 'var(--color-danger)' if task.due_date < today else 'var(--color-text-secondary)' }}">Срок: {{ task.due_date }}</span>
+                    {% endif %}
+                    <span>{{ task.priority.value }}</span>
+                </div>
+            </div>
+            <div class="flex gap-2 items-center">
+                {% set status_colors = {'pending': 'var(--color-warning)', 'in_progress': 'var(--color-primary)', 'completed': 'var(--color-success)', 'overdue': 'var(--color-danger)'} %}
+                <span class="badge-status" style="background: var(--color-surface); color: {{ status_colors.get(task.status.value, 'var(--color-text)') }}">{{ task.status.value }}</span>
+                {% if task.status.value != 'completed' %}
+                <form method="POST" action="/tasks/{{ task.id }}/complete">
+                    <button type="submit" class="text-xs px-2 py-1 rounded" style="background: var(--color-success-light); color: var(--color-success)">✓</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm py-4" style="color: var(--color-text-secondary)">Задач пока нет</p>
+    {% endif %}
+</div>
+
+<!-- Таб: Транскрипты -->
+<div id="tab-transcripts" class="tab-content hidden">
+    {% if transcripts %}
+    <div class="space-y-3">
+        {% for tr in transcripts %}
+        <div class="card p-4">
+            <div class="flex items-center justify-between mb-2">
+                <span class="font-medium text-sm">{{ tr.filename }}</span>
+                {% if tr.meeting_date %}
+                <span class="text-xs" style="color: var(--color-text-secondary)">{{ tr.meeting_date }}</span>
+                {% endif %}
+            </div>
+            <details>
+                <summary class="text-xs cursor-pointer" style="color: var(--color-primary)">Показать содержимое</summary>
+                <pre class="mt-2 text-xs whitespace-pre-wrap p-3 rounded overflow-auto max-h-96" style="background: var(--color-surface); color: var(--color-text)">{{ tr.content }}</pre>
+            </details>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm py-4" style="color: var(--color-text-secondary)">Транскриптов пока нет</p>
+    {% endif %}
+</div>
+
+<!-- Таб: Продажи -->
+<div id="tab-sales" class="tab-content hidden">
+    {% if sales %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--color-border);">
+                    <th class="p-2 text-left">Заказчик</th>
+                    <th class="p-2 text-left">Оборудование</th>
+                    <th class="p-2 text-left">Сумма</th>
+                    <th class="p-2 text-left">Скидка</th>
+                    <th class="p-2 text-left">Дата продажи</th>
+                    <th class="p-2 text-left">Отгрузка</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in sales %}
+                <tr style="border-bottom: 1px solid var(--color-border);">
+                    <td class="p-2 font-medium">{{ sale.customer }}</td>
+                    <td class="p-2" style="color: var(--color-text-secondary)">{{ sale.equipment or '—' }}</td>
+                    <td class="p-2">{{ "{:,.0f}".format(sale.amount) }} ₽</td>
+                    <td class="p-2">{% if sale.discount %}{{ sale.discount }}%{% else %}—{% endif %}</td>
+                    <td class="p-2">{{ sale.sale_date }}</td>
+                    <td class="p-2">{{ sale.shipment_date or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-sm py-4" style="color: var(--color-text-secondary)">Продаж пока нет</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        // Скрываем все табы
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.style.borderBottom = 'none';
+            b.style.color = 'var(--color-text-secondary)';
+        });
+        // Показываем выбранный
+        const tab = this.dataset.tab;
+        document.getElementById('tab-' + tab).classList.remove('hidden');
+        this.style.borderBottom = '2px solid var(--color-primary)';
+        this.style.color = 'var(--color-primary)';
+    });
+});
+</script>
+{% endblock %}

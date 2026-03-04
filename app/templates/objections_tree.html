@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Возражения — База знаний{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
+    <div>
+        <a href="/knowledge" class="text-sm hover:underline" style="color: var(--color-primary)">&larr; База знаний</a>
+        <h1 class="text-2xl font-bold mt-2">Дерево возражений</h1>
+    </div>
+    <button onclick="document.getElementById('add-objection-form').classList.toggle('hidden')" class="btn-primary text-sm px-4 py-2 rounded">+ Добавить</button>
+</div>
+
+<!-- Форма добавления -->
+<div id="add-objection-form" class="card p-4 mb-4 hidden">
+    <form method="POST" action="/knowledge/objections/new" class="space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+                <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Возражение *</label>
+                <input type="text" name="title" required class="input-themed w-full text-sm" placeholder="Текст возражения">
+            </div>
+            <div>
+                <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Категория</label>
+                <select name="category" class="input-themed w-full text-sm">
+                    <option value="">Без категории</option>
+                    <option value="price">Ценовое</option>
+                    <option value="technical">Техническое</option>
+                    <option value="organizational">Организационное</option>
+                </select>
+            </div>
+        </div>
+        <div>
+            <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Рекомендуемый ответ</label>
+            <textarea name="response" rows="2" class="input-themed w-full text-sm" placeholder="Как отвечать на это возражение..."></textarea>
+        </div>
+        <div>
+            <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Родительский узел (ID, пусто = корневой)</label>
+            <input type="number" name="parent_id" class="input-themed w-full text-sm" placeholder="Оставьте пустым для корневого элемента">
+        </div>
+        <button type="submit" class="btn-primary px-4 py-1.5 rounded text-sm">Добавить</button>
+    </form>
+</div>
+
+<!-- Дерево -->
+<div class="card p-4">
+    <div id="objections-tree-container">
+        <p class="text-sm" style="color: var(--color-text-secondary)">Загрузка дерева...</p>
+    </div>
+</div>
+
+<!-- Модальное окно редактирования -->
+<div id="edit-objection-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.5);">
+    <div class="card p-6 w-full max-w-lg mx-4">
+        <h3 class="text-lg font-semibold mb-4">Редактировать возражение</h3>
+        <form id="edit-obj-form" method="POST" class="space-y-3">
+            <input type="hidden" id="edit-obj-id" name="id">
+            <div>
+                <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Возражение</label>
+                <input type="text" id="edit-obj-title" name="title" required class="input-themed w-full text-sm">
+            </div>
+            <div>
+                <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Ответ</label>
+                <textarea id="edit-obj-response" name="response" rows="3" class="input-themed w-full text-sm"></textarea>
+            </div>
+            <div>
+                <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Категория</label>
+                <input type="text" id="edit-obj-category" name="category" class="input-themed w-full text-sm">
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="btn-primary px-4 py-1.5 rounded text-sm">Сохранить</button>
+                <button type="button" class="px-4 py-1.5 rounded text-sm border" style="border-color: var(--color-border)" onclick="document.getElementById('edit-objection-modal').classList.add('hidden')">Отмена</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/objections_tree.js"></script>
+{% endblock %}

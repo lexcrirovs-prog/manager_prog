@@ -1,0 +1,161 @@
+/* Система тем: CSS custom properties */
+
+:root,
+[data-theme="light"] {
+    --color-bg: #ffffff;
+    --color-surface: #f8fafc;
+    --color-card: #ffffff;
+    --color-text: #1a1a2e;
+    --color-text-secondary: #64748b;
+    --color-primary: #2563eb;
+    --color-primary-hover: #1d4ed8;
+    --color-primary-light: #dbeafe;
+    --color-accent: #f59e0b;
+    --color-border: #e2e8f0;
+    --color-danger: #ef4444;
+    --color-danger-light: #fef2f2;
+    --color-success: #22c55e;
+    --color-success-light: #f0fdf4;
+    --color-warning: #f59e0b;
+    --color-warning-light: #fffbeb;
+    --color-input-bg: #ffffff;
+    --color-input-border: #d1d5db;
+    --color-nav-bg: #ffffff;
+    --color-nav-border: #e5e7eb;
+    --color-shadow: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] {
+    --color-bg: #0f172a;
+    --color-surface: #1e293b;
+    --color-card: #1e293b;
+    --color-text: #e2e8f0;
+    --color-text-secondary: #94a3b8;
+    --color-primary: #3b82f6;
+    --color-primary-hover: #60a5fa;
+    --color-primary-light: #1e3a5f;
+    --color-accent: #f59e0b;
+    --color-border: #334155;
+    --color-danger: #f87171;
+    --color-danger-light: #3b1111;
+    --color-success: #4ade80;
+    --color-success-light: #0f2e1a;
+    --color-warning: #fbbf24;
+    --color-warning-light: #3b2e0a;
+    --color-input-bg: #1e293b;
+    --color-input-border: #475569;
+    --color-nav-bg: #1e293b;
+    --color-nav-border: #334155;
+    --color-shadow: rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="coffee"] {
+    --color-bg: #faf5ef;
+    --color-surface: #f5ebe0;
+    --color-card: #faf5ef;
+    --color-text: #3e2c1c;
+    --color-text-secondary: #78716c;
+    --color-primary: #92400e;
+    --color-primary-hover: #78350f;
+    --color-primary-light: #fef3c7;
+    --color-accent: #b45309;
+    --color-border: #d4c4a8;
+    --color-danger: #dc2626;
+    --color-danger-light: #fef2f2;
+    --color-success: #65a30d;
+    --color-success-light: #f7fee7;
+    --color-warning: #d97706;
+    --color-warning-light: #fffbeb;
+    --color-input-bg: #faf5ef;
+    --color-input-border: #c4a882;
+    --color-nav-bg: #f5ebe0;
+    --color-nav-border: #d4c4a8;
+    --color-shadow: rgba(62, 44, 28, 0.1);
+}
+
+/* Глобальные стили */
+body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* Утилиты для тем */
+.bg-surface { background-color: var(--color-surface); }
+.bg-card { background-color: var(--color-card); }
+.text-primary { color: var(--color-primary) !important; }
+.text-secondary { color: var(--color-text-secondary); }
+.border-theme { border-color: var(--color-border); }
+
+.btn-primary {
+    background-color: var(--color-primary);
+    color: #ffffff;
+    transition: background-color 0.2s;
+}
+.btn-primary:hover { background-color: var(--color-primary-hover); }
+
+.btn-danger {
+    background-color: var(--color-danger);
+    color: #ffffff;
+}
+
+.card {
+    background-color: var(--color-card);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 1px 3px var(--color-shadow);
+    border-radius: 0.5rem;
+}
+
+.input-themed {
+    background-color: var(--color-input-bg);
+    border: 1px solid var(--color-input-border);
+    color: var(--color-text);
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+}
+.input-themed:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+.nav-themed {
+    background-color: var(--color-nav-bg);
+    border-bottom: 1px solid var(--color-nav-border);
+}
+
+.alert-danger { background-color: var(--color-danger-light); border-left: 4px solid var(--color-danger); }
+.alert-success { background-color: var(--color-success-light); border-left: 4px solid var(--color-success); }
+.alert-warning { background-color: var(--color-warning-light); border-left: 4px solid var(--color-warning); }
+
+.badge-status {
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Mindmap дерево */
+.tree-node { position: relative; padding-left: 1.5rem; }
+.tree-node::before {
+    content: '';
+    position: absolute;
+    left: 0.5rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--color-border);
+}
+.tree-node-item {
+    position: relative;
+    padding: 0.5rem 0;
+}
+.tree-node-item::before {
+    content: '';
+    position: absolute;
+    left: -1rem;
+    top: 1rem;
+    width: 0.75rem;
+    height: 2px;
+    background: var(--color-border);
+}

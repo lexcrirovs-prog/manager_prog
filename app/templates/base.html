@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sales Manager{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/themes.css">
+    <script src="/static/js/theme.js"></script>
+    <style>
+        /* Tailwind CDN — маппинг на CSS-переменные */
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="min-h-screen" style="background: var(--color-bg); color: var(--color-text);">
+    {% include "partials/_navbar.html" %}
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        {% include "partials/_flash_messages.html" %}
+        {% block content %}{% endblock %}
+    </main>
+
+    {% include "partials/_theme_switcher.html" %}
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>
