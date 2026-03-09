@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database.engine import get_db
 from app.services.alerts import get_all_alerts
-from app.services.calendar_service import get_calendar_events
+from app.services.calendar_service import get_calendar_events, get_manager_color_legend
 from app.services.knowledge_service import get_objection_tree
 
 router = APIRouter(prefix="/api", tags=["api"])
@@ -21,6 +21,12 @@ def api_objections_tree(db: Session = Depends(get_db)):
 def api_calendar_events(db: Session = Depends(get_db)):
     """Даты отгрузок для календаря."""
     return get_calendar_events(db)
+
+
+@router.get("/calendar-events/managers")
+def api_calendar_managers(db: Session = Depends(get_db)):
+    """Легенда менеджеров с назначенными цветами для отображения на дашборде."""
+    return get_manager_color_legend(db)
 
 
 @router.get("/alerts")

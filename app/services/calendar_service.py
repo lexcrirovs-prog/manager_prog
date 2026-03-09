@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.database.models import Lead, LeadStatus, Employee
 
-# Палитра цветов для менеджеров (контрастная, хорошо читается на светлой и тёмной теме)
+# Палитра цветов для менеджеров — тёмные/насыщенные цвета, белый текст всегда контрастен
 _MANAGER_PALETTE = [
     "#2563eb",  # синий
     "#16a34a",  # зелёный
@@ -19,6 +19,11 @@ _MANAGER_PALETTE = [
     "#ea580c",  # оранжевый
     "#0f766e",  # бирюзовый
 ]
+
+
+def _manager_color(manager_id: int) -> str:
+    """Детерминированный цвет менеджера по его id (стабилен при перезапуске)."""
+    return _MANAGER_PALETTE[manager_id % len(_MANAGER_PALETTE)]
 
 
 def get_upcoming_shipments(db: Session) -> dict:
@@ -91,21 +96,16 @@ def get_calendar_events(db: Session) -> list[dict]:
 
     events = []
     for lead in leads:
-        days_until = (lead.planned_shipment_date - today).days
-
-        if lead.status in (LeadStatus.WON,):
-            color = "#22c55e"  # зелёный — выиграна
-        elif days_until <= 7:
-            color = "#ef4444"  # красный — скоро
-        elif days_until <= 14:
-            color = "#f59e0b"  # оранжевый — внимание
-        else:
-            color = "#3b82f6"  # синий — норма
+        # Каждый менеджер получает свой уникальный цвет по manager_id.
+        # Детерминированный выбор через остаток от деления — стабилен между
+        # перезапусками и не зависит от порядка появления менеджера в выборке.
+        color = _manager_color(lead.manager_id)
 
         events.append({
-            "title": f"{lead.customer}",
+            "title": lead.customer,
             "date": lead.planned_shipment_date.isoformat(),
-            "manager": lead.manager.full_name,
+            "manager": lead.manager.full_name if lead.manager else "—",
+            "manager_id": lead.manager_id,
             "status": lead.status.value,
             "color": color,
             "lead_id": lead.id,
@@ -137,23 +137,15 @@ def get_followup_calendar_events(db: Session) -> dict:
         .all()
     )
 
-    # Назначаем каждому менеджеру свой цвет (детерминировано по id)
-    manager_ids_ordered: list[int] = []
     seen: set[int] = set()
     for lead in leads:
-        mid = lead.manager_id
-        if mid and mid not in seen:
-            manager_ids_ordered.append(mid)
-            seen.add(mid)
-
-    manager_color: dict[int, str] = {
-        mid: _MANAGER_PALETTE[i % len(_MANAGER_PALETTE)]
-        for i, mid in enumerate(manager_ids_ordered)
-    }
+        if lead.manager_id:
+            seen.add(lead.manager_id)
 
     events = []
     for lead in leads:
-        color = manager_color.get(lead.manager_id, "#6b7280")
+        # Единая функция цвета — та же логика, что и в get_calendar_events()
+        color = _manager_color(lead.manager_id)
         events.append({
             "id": lead.id,
             "date": lead.next_step_date.isoformat(),
@@ -178,9 +170,32 @@ def get_followup_calendar_events(db: Session) -> dict:
         {
             "id": emp.id,
             "name": emp.full_name,
-            "color": manager_color.get(emp.id, "#6b7280"),
+            "color": _manager_color(emp.id),
         }
         for emp in manager_rows
     ]
 
     return {"events": events, "managers": managers}
+
+
+def get_manager_color_legend(db: Session) -> list[dict]:
+    """Все активные менеджеры с назначенными цветами — для легенды на дашборде.
+
+    Returns:
+        Список {id, name, color} отсортированный по имени.
+    """
+    employees = (
+        db.query(Employee)
+        .filter(Employee.is_active == True)
+        .order_by(Employee.full_name)
+        .all()
+    )
+    return [
+        {
+            "id": emp.id,
+            "name": emp.full_name,
+            "color": _manager_color(emp.id),
+            "text_color": "#ffffff",  # весь _MANAGER_PALETTE — тёмные цвета
+        }
+        for emp in employees
+    ]

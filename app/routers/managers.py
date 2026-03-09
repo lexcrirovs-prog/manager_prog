@@ -1,7 +1,7 @@
 """Профили менеджеров: список, детали, загрузка файлов, запись продаж."""
 
 import uuid
-from datetime import date
+from datetime import date, timedelta
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Request, UploadFile, File, Form
@@ -10,11 +10,17 @@ from sqlalchemy.orm import Session
 
 from app.database.engine import get_db
 from app.database.models import (
-    Employee, Lead, ActionItem, Transcript, Sale, LeadStatus,
+    Employee, Lead, ActionItem, ActionItemStatus, ActionItemPriority,
+    Transcript, Sale, LeadStatus,
 )
 from app.services.excel_parser import parse_excel_upload
 from app.services.transcript_parser import parse_transcript
-from app.services.followup_parser import get_followup_date
+from app.services.followup_parser import parse_followup_date
+
+# Максимальное количество каскадных напоминаний на одну сделку
+_CASCADE_LIMIT = 5
+# Смещения в неделях для каскадных напоминаний
+_CASCADE_OFFSETS_WEEKS = [2, 3, 4, 5]
 
 router = APIRouter(prefix="/managers", tags=["managers"])
 
@@ -99,16 +105,26 @@ async def upload_excel(
 
     redirect_base = f"/managers/{manager_id}"
 
+    filename = file.filename or "файл"
     try:
         batch_id = str(uuid.uuid4())[:8]
         leads_data = await parse_excel_upload(file)
     except Exception as exc:
-        msg = quote(f"Ошибка при чтении файла: {str(exc)[:200]}")
+        exc_str = str(exc).lower()
+        if any(k in exc_str for k in ("zipfile", "badzip", "not a zip", "openpyxl", "bad magic")):
+            friendly = "файл повреждён или имеет неверный формат (.xlsx/.xls)"
+        elif any(k in exc_str for k in ("unicode", "codec", "encoding", "decode")):
+            friendly = "ошибка кодировки — сохраните файл в UTF-8 или Windows-1251"
+        elif "permission" in exc_str:
+            friendly = "нет прав доступа к файлу"
+        else:
+            friendly = "неверный формат файла или отсутствуют обязательные колонки"
+        msg = quote(f"Ошибка загрузки «{filename}»: {friendly}")
         return RedirectResponse(f"{redirect_base}?msg={msg}&msg_type=error", status_code=302)
 
     if not leads_data:
         msg = quote(
-            "Файл обработан, но ни одной сделки не найдено. "
+            f"Файл «{filename}» обработан, но ни одной сделки не найдено. "
             "Убедитесь, что в файле есть данные о клиентах."
         )
         return RedirectResponse(f"{redirect_base}?msg={msg}&msg_type=warning", status_code=302)
@@ -119,10 +135,12 @@ async def upload_excel(
             # «Примечание» может лежать в notes или next_step
             notes_text: str = row.get("notes") or row.get("next_step") or ""
 
-            # Применяем NLP-парсер: извлекаем follow-up дату из Примечания
-            followup_date = row.get("next_step_date")
-            if notes_text.strip() and not followup_date:
-                followup_date = get_followup_date(notes_text, ref_date)
+            # NLP-парсер: извлекаем follow-up дату и уверенность из «Примечания»
+            followup_date, confidence = parse_followup_date(notes_text, ref_date)
+            # Если в отчёте уже указана явная дата — приоритет за ней
+            if row.get("next_step_date"):
+                followup_date = row["next_step_date"]
+                confidence = 1.0
 
             lead = Lead(
                 manager_id=manager_id,
@@ -133,16 +151,38 @@ async def upload_excel(
                 amount=row.get("amount"),
                 notes=notes_text or None,
                 next_step=row.get("next_step") or (notes_text[:500] if notes_text else None),
-                next_step_date=followup_date,
+                next_step_date=followup_date,   # None если дата не найдена
                 planned_shipment_date=row.get("planned_shipment_date"),
                 source="upload",
                 upload_batch_id=batch_id,
             )
             db.add(lead)
+            # Получаем lead.id до создания связанных задач
+            db.flush()
+
+            # ── Каскадные напоминания ────────────────────────────────────────
+            # Если дата follow-up не была явно указана — создаём серию задач
+            # на +2, +3, +4, +5 недель от даты загрузки (не более _CASCADE_LIMIT).
+            if confidence == 0.0:
+                customer_name = row.get("customer", "?")
+                for i, weeks in enumerate(_CASCADE_OFFSETS_WEEKS[:_CASCADE_LIMIT], start=1):
+                    db.add(ActionItem(
+                        manager_id=manager_id,
+                        lead_id=lead.id,
+                        title=f"Follow-up #{i}: {customer_name}",
+                        description=(
+                            "Каскадное напоминание — дата следующего контакта "
+                            "не была явно указана в примечании к сделке."
+                        ),
+                        status=ActionItemStatus.PENDING,
+                        priority=ActionItemPriority.MEDIUM,
+                        due_date=ref_date + timedelta(weeks=weeks),
+                    ))
+
         db.commit()
     except Exception as exc:
         db.rollback()
-        msg = quote(f"Ошибка при сохранении данных: {str(exc)[:200]}")
+        msg = quote(f"Ошибка при сохранении данных из «{filename}»: {str(exc)[:200]}")
         return RedirectResponse(f"{redirect_base}?msg={msg}&msg_type=error", status_code=302)
 
     count = len(leads_data)
