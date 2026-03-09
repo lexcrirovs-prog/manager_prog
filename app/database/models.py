@@ -87,7 +87,12 @@ class Employee(Base):
 
     # Связи
     leads = relationship("Lead", back_populates="manager", cascade="all, delete-orphan")
-    action_items = relationship("ActionItem", back_populates="manager", cascade="all, delete-orphan")
+    action_items = relationship(
+        "ActionItem",
+        foreign_keys="[ActionItem.manager_id]",
+        back_populates="manager",
+        cascade="all, delete-orphan",
+    )
     transcripts = relationship("Transcript", back_populates="manager", cascade="all, delete-orphan")
     sales = relationship("Sale", back_populates="manager", cascade="all, delete-orphan")
 
