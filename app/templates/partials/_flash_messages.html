@@ -1,7 +1,14 @@
 {% set msg = request.query_params.get("msg", "") %}
 {% set msg_type = request.query_params.get("msg_type", "info") %}
+{# CSS: alert-danger / alert-success / alert-warning; маппим "error" → "danger" #}
+{% set css_type = "danger" if msg_type == "error" else msg_type %}
 {% if msg %}
-<div class="mb-4 p-3 rounded text-sm alert-{{ msg_type }}" style="color: var(--color-text);">
-    {{ msg }}
+<div id="flash-message"
+     class="mb-4 p-4 rounded-lg text-sm alert-{{ css_type }} flex items-start justify-between gap-3"
+     style="color: var(--color-text);">
+    <span>{{ msg }}</span>
+    <button onclick="document.getElementById('flash-message').remove()"
+            class="shrink-0 text-lg leading-none hover:opacity-60"
+            style="color: var(--color-text-secondary);" aria-label="Закрыть">&times;</button>
 </div>
 {% endif %}

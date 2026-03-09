@@ -14,6 +14,7 @@ from app.database.models import (
 )
 from app.services.excel_parser import parse_excel_upload
 from app.services.transcript_parser import parse_transcript
+from app.services.followup_parser import get_followup_date
 
 router = APIRouter(prefix="/managers", tags=["managers"])
 
@@ -112,8 +113,17 @@ async def upload_excel(
         )
         return RedirectResponse(f"{redirect_base}?msg={msg}&msg_type=warning", status_code=302)
 
+    ref_date = date.today()
     try:
         for row in leads_data:
+            # «Примечание» может лежать в notes или next_step
+            notes_text: str = row.get("notes") or row.get("next_step") or ""
+
+            # Применяем NLP-парсер: извлекаем follow-up дату из Примечания
+            followup_date = row.get("next_step_date")
+            if notes_text.strip() and not followup_date:
+                followup_date = get_followup_date(notes_text, ref_date)
+
             lead = Lead(
                 manager_id=manager_id,
                 update_date=row.get("update_date"),
@@ -121,8 +131,9 @@ async def upload_excel(
                 customer=row.get("customer", "Неизвестный"),
                 equipment=row.get("equipment"),
                 amount=row.get("amount"),
-                next_step=row.get("next_step"),
-                next_step_date=row.get("next_step_date"),
+                notes=notes_text or None,
+                next_step=row.get("next_step") or (notes_text[:500] if notes_text else None),
+                next_step_date=followup_date,
                 planned_shipment_date=row.get("planned_shipment_date"),
                 source="upload",
                 upload_batch_id=batch_id,
@@ -135,7 +146,10 @@ async def upload_excel(
         return RedirectResponse(f"{redirect_base}?msg={msg}&msg_type=error", status_code=302)
 
     count = len(leads_data)
-    msg = quote(f"Успешно загружено {count} сделок из файла «{file.filename}».")
+    msg = quote(
+        f"Успешно загружено {count} событий из файла «{file.filename}» "
+        f"для менеджера {employee.full_name}."
+    )
     return RedirectResponse(f"{redirect_base}?msg={msg}&msg_type=success", status_code=302)
 
 

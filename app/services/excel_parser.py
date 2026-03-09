@@ -141,21 +141,34 @@ async def parse_excel_upload(file: UploadFile) -> list[dict]:
         return _parse_xlsx(content)
 
 
+def _detect_delimiter(text: str) -> str:
+    """Определяет разделитель CSV через csv.Sniffer; при неудаче — считает вручную."""
+    try:
+        dialect = csv.Sniffer().sniff(text[:8192], delimiters=";,\t")
+        return dialect.delimiter
+    except csv.Error:
+        first_line = text.split("\n")[0] if text else ""
+        return ";" if first_line.count(";") >= first_line.count(",") else ","
+
+
 def _parse_csv(content: bytes) -> list[dict]:
-    """Парсинг CSV-файла."""
-    for encoding in ("utf-8", "cp1251", "latin-1"):
+    """Парсинг CSV-файла.
+
+    Порядок кодировок: utf-8-sig первым — автоматически удаляет BOM (\ufeff),
+    который Excel добавляет при экспорте «UTF-8 с BOM».
+    """
+    text = None
+    for encoding in ("utf-8-sig", "utf-8", "cp1251", "latin-1"):
         try:
             text = content.decode(encoding)
             break
         except UnicodeDecodeError:
             continue
-    else:
+    if text is None:
         text = content.decode("utf-8", errors="replace")
 
-    reader = csv.DictReader(io.StringIO(text), delimiter=";")
-    if not reader.fieldnames:
-        reader = csv.DictReader(io.StringIO(text), delimiter=",")
-
+    delimiter = _detect_delimiter(text)
+    reader = csv.DictReader(io.StringIO(text), delimiter=delimiter)
     return _process_rows(reader)
 
 
