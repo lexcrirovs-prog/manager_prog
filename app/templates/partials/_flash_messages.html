@@ -1,1 +1,7 @@
-<!-- Placeholder для flash-сообщений (при необходимости) -->
+{% set msg = request.query_params.get("msg", "") %}
+{% set msg_type = request.query_params.get("msg_type", "info") %}
+{% if msg %}
+<div class="mb-4 p-3 rounded text-sm alert-{{ msg_type }}" style="color: var(--color-text);">
+    {{ msg }}
+</div>
+{% endif %}

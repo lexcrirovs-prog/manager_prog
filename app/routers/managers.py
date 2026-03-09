@@ -2,6 +2,7 @@
 
 import uuid
 from datetime import date
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Request, UploadFile, File, Form
 from fastapi.responses import RedirectResponse
@@ -95,27 +96,47 @@ async def upload_excel(
     if not employee:
         return RedirectResponse("/managers", status_code=302)
 
-    batch_id = str(uuid.uuid4())[:8]
-    leads_data = await parse_excel_upload(file)
+    redirect_base = f"/managers/{manager_id}"
 
-    for row in leads_data:
-        lead = Lead(
-            manager_id=manager_id,
-            update_date=row.get("update_date"),
-            status=row.get("status", LeadStatus.NEW),
-            customer=row.get("customer", "Неизвестный"),
-            equipment=row.get("equipment"),
-            amount=row.get("amount"),
-            next_step=row.get("next_step"),
-            next_step_date=row.get("next_step_date"),
-            planned_shipment_date=row.get("planned_shipment_date"),
-            source="upload",
-            upload_batch_id=batch_id,
+    try:
+        batch_id = str(uuid.uuid4())[:8]
+        leads_data = await parse_excel_upload(file)
+    except Exception as exc:
+        msg = quote(f"Ошибка при чтении файла: {str(exc)[:200]}")
+        return RedirectResponse(f"{redirect_base}?msg={msg}&msg_type=error", status_code=302)
+
+    if not leads_data:
+        msg = quote(
+            "Файл обработан, но ни одной сделки не найдено. "
+            "Убедитесь, что в файле есть данные о клиентах."
         )
-        db.add(lead)
+        return RedirectResponse(f"{redirect_base}?msg={msg}&msg_type=warning", status_code=302)
 
-    db.commit()
-    return RedirectResponse(f"/managers/{manager_id}", status_code=302)
+    try:
+        for row in leads_data:
+            lead = Lead(
+                manager_id=manager_id,
+                update_date=row.get("update_date"),
+                status=row.get("status", LeadStatus.NEW),
+                customer=row.get("customer", "Неизвестный"),
+                equipment=row.get("equipment"),
+                amount=row.get("amount"),
+                next_step=row.get("next_step"),
+                next_step_date=row.get("next_step_date"),
+                planned_shipment_date=row.get("planned_shipment_date"),
+                source="upload",
+                upload_batch_id=batch_id,
+            )
+            db.add(lead)
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        msg = quote(f"Ошибка при сохранении данных: {str(exc)[:200]}")
+        return RedirectResponse(f"{redirect_base}?msg={msg}&msg_type=error", status_code=302)
+
+    count = len(leads_data)
+    msg = quote(f"Успешно загружено {count} сделок из файла «{file.filename}».")
+    return RedirectResponse(f"{redirect_base}?msg={msg}&msg_type=success", status_code=302)
 
 
 @router.post("/{manager_id}/upload-transcript")
@@ -129,18 +150,25 @@ async def upload_transcript(
     if not employee:
         return RedirectResponse("/managers", status_code=302)
 
-    parsed = await parse_transcript(file)
+    redirect_base = f"/managers/{manager_id}"
 
-    transcript = Transcript(
-        manager_id=manager_id,
-        filename=parsed["filename"],
-        content=parsed["content"],
-        meeting_date=parsed.get("meeting_date"),
-    )
-    db.add(transcript)
-    db.commit()
+    try:
+        parsed = await parse_transcript(file)
+        transcript = Transcript(
+            manager_id=manager_id,
+            filename=parsed["filename"],
+            content=parsed["content"],
+            meeting_date=parsed.get("meeting_date"),
+        )
+        db.add(transcript)
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        msg = quote(f"Ошибка при загрузке транскрипта: {str(exc)[:200]}")
+        return RedirectResponse(f"{redirect_base}?msg={msg}&msg_type=error", status_code=302)
 
-    return RedirectResponse(f"/managers/{manager_id}", status_code=302)
+    msg = quote(f"Транскрипт «{file.filename}» успешно загружен.")
+    return RedirectResponse(f"{redirect_base}?msg={msg}&msg_type=success", status_code=302)
 
 
 @router.get("/{manager_id}/record-sale")
