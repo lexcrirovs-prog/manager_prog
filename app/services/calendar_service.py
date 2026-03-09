@@ -4,7 +4,7 @@ from datetime import date, timedelta
 
 from sqlalchemy.orm import Session
 
-from app.database.models import Lead, LeadStatus, Employee
+from app.database.models import Lead, LeadStatus, Employee, ActionItem, ActionItemStatus
 
 # Палитра цветов для менеджеров — тёмные/насыщенные цвета, белый текст всегда контрастен
 _MANAGER_PALETTE = [
@@ -96,12 +96,9 @@ def get_calendar_events(db: Session) -> list[dict]:
 
     events = []
     for lead in leads:
-        # Каждый менеджер получает свой уникальный цвет по manager_id.
-        # Детерминированный выбор через остаток от деления — стабилен между
-        # перезапусками и не зависит от порядка появления менеджера в выборке.
         color = _manager_color(lead.manager_id)
-
         events.append({
+            "type": "shipment",
             "title": lead.customer,
             "date": lead.planned_shipment_date.isoformat(),
             "manager": lead.manager.full_name if lead.manager else "—",
@@ -109,8 +106,44 @@ def get_calendar_events(db: Session) -> list[dict]:
             "status": lead.status.value,
             "color": color,
             "lead_id": lead.id,
+            "customer": lead.customer,
             "equipment": lead.equipment,
             "amount": lead.amount,
+            "description": None,
+            "priority": None,
+        })
+
+    # ── Задачи (ActionItem) по due_date ─────────────────────────────────────
+    tasks = (
+        db.query(ActionItem)
+        .join(Employee, ActionItem.manager_id == Employee.id)
+        .filter(
+            ActionItem.due_date.isnot(None),
+            ActionItem.due_date >= start,
+            ActionItem.due_date <= end,
+            ActionItem.status != ActionItemStatus.COMPLETED,
+        )
+        .order_by(ActionItem.due_date.asc())
+        .all()
+    )
+
+    for task in tasks:
+        customer = task.lead.customer if task.lead else ""
+        equipment = task.lead.equipment if task.lead else None
+        events.append({
+            "type": "task",
+            "title": task.title,
+            "date": task.due_date.isoformat(),
+            "manager": task.manager.full_name if task.manager else "—",
+            "manager_id": task.manager_id,
+            "status": task.status.value,
+            "color": _manager_color(task.manager_id),
+            "task_id": task.id,
+            "lead_id": task.lead_id,
+            "customer": customer,
+            "equipment": equipment,
+            "description": task.description,
+            "priority": task.priority.value if task.priority else None,
         })
 
     return events
