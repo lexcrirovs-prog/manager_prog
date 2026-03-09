@@ -189,6 +189,9 @@ class ActionItem(Base):
     manager_id = Column(Integer, ForeignKey("employees.id"), nullable=False)
     lead_id = Column(Integer, ForeignKey("leads.id"), nullable=True)
 
+    # Совместный исполнитель (опционально)
+    co_manager_id = Column(Integer, ForeignKey("employees.id"), nullable=True)
+
     title = Column(String(500), nullable=False)
     description = Column(Text, nullable=True)
     status = Column(SAEnum(ActionItemStatus), default=ActionItemStatus.PENDING, nullable=False)
@@ -199,8 +202,9 @@ class ActionItem(Base):
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
 
     # Связи
-    manager = relationship("Employee", back_populates="action_items")
-    lead = relationship("Lead", back_populates="action_items")
+    manager    = relationship("Employee", foreign_keys=[manager_id], back_populates="action_items")
+    co_manager = relationship("Employee", foreign_keys=[co_manager_id])
+    lead       = relationship("Lead", back_populates="action_items")
 
     def __repr__(self) -> str:
         return f"<ActionItem {self.id}: {self.title}>"

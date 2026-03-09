@@ -34,6 +34,8 @@ def _run_migrations() -> None:
     migrations = [
         # crm_report_id в таблице leads (добавлен в новой версии модели)
         "ALTER TABLE leads ADD COLUMN crm_report_id INTEGER REFERENCES crm_reports(id)",
+        # co_manager_id в action_items — совместный исполнитель задачи
+        "ALTER TABLE action_items ADD COLUMN co_manager_id INTEGER REFERENCES employees(id)",
     ]
     with engine.connect() as conn:
         for stmt in migrations:

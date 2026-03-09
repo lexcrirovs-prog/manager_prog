@@ -128,22 +128,26 @@ def get_calendar_events(db: Session) -> list[dict]:
     )
 
     for task in tasks:
-        customer = task.lead.customer if task.lead else ""
-        equipment = task.lead.equipment if task.lead else None
+        customer  = task.lead.customer   if task.lead       else ""
+        equipment = task.lead.equipment  if task.lead       else None
+        co_color  = _manager_color(task.co_manager_id) if task.co_manager_id else None
         events.append({
-            "type": "task",
-            "title": task.title,
-            "date": task.due_date.isoformat(),
-            "manager": task.manager.full_name if task.manager else "—",
-            "manager_id": task.manager_id,
-            "status": task.status.value,
-            "color": _manager_color(task.manager_id),
-            "task_id": task.id,
-            "lead_id": task.lead_id,
-            "customer": customer,
-            "equipment": equipment,
-            "description": task.description,
-            "priority": task.priority.value if task.priority else None,
+            "type":             "task",
+            "title":            task.title,
+            "date":             task.due_date.isoformat(),
+            "manager":          task.manager.full_name    if task.manager    else "—",
+            "manager_id":       task.manager_id,
+            "co_manager":       task.co_manager.full_name if task.co_manager else None,
+            "co_manager_id":    task.co_manager_id,
+            "co_manager_color": co_color,
+            "status":           task.status.value,
+            "color":            _manager_color(task.manager_id),
+            "task_id":          task.id,
+            "lead_id":          task.lead_id,
+            "customer":         customer,
+            "equipment":        equipment,
+            "description":      task.description,
+            "priority":         task.priority.value if task.priority else None,
         })
 
     return events

@@ -17,10 +17,8 @@ from app.services.excel_parser import parse_excel_upload
 from app.services.transcript_parser import parse_transcript
 from app.services.followup_parser import parse_followup_date
 
-# Максимальное количество каскадных напоминаний на одну сделку
-_CASCADE_LIMIT = 5
-# Смещения в неделях для каскадных напоминаний
-_CASCADE_OFFSETS_WEEKS = [2, 3, 4, 5]
+# Срок follow-up по умолчанию (если дата не найдена в примечании)
+_DEFAULT_FOLLOWUP_WEEKS = 2
 
 router = APIRouter(prefix="/managers", tags=["managers"])
 
@@ -142,42 +140,44 @@ async def upload_excel(
                 followup_date = row["next_step_date"]
                 confidence = 1.0
 
+            # Определяем дату задачи: из примечания или дефолт +2 недели
+            task_date = followup_date if confidence > 0.0 else (ref_date + timedelta(weeks=_DEFAULT_FOLLOWUP_WEEKS))
+            if confidence > 0.0:
+                date_comment = "Дата извлечена из примечания к сделке."
+            else:
+                date_comment = f"Дата в примечании не указана — назначено через {_DEFAULT_FOLLOWUP_WEEKS} недели."
+
+            customer_name = row.get("customer", "Неизвестный")
+
             lead = Lead(
                 manager_id=manager_id,
                 update_date=row.get("update_date"),
                 status=row.get("status", LeadStatus.NEW),
-                customer=row.get("customer", "Неизвестный"),
+                customer=customer_name,
                 equipment=row.get("equipment"),
                 amount=row.get("amount"),
                 notes=notes_text or None,
                 next_step=row.get("next_step") or (notes_text[:500] if notes_text else None),
-                next_step_date=followup_date,   # None если дата не найдена
+                next_step_date=task_date,
                 planned_shipment_date=row.get("planned_shipment_date"),
                 source="upload",
                 upload_batch_id=batch_id,
             )
             db.add(lead)
-            # Получаем lead.id до создания связанных задач
+            # flush() нужен, чтобы получить lead.id до создания ActionItem
             db.flush()
 
-            # ── Каскадные напоминания ────────────────────────────────────────
-            # Если дата follow-up не была явно указана — создаём серию задач
-            # на +2, +3, +4, +5 недель от даты загрузки (не более _CASCADE_LIMIT).
-            if confidence == 0.0:
-                customer_name = row.get("customer", "?")
-                for i, weeks in enumerate(_CASCADE_OFFSETS_WEEKS[:_CASCADE_LIMIT], start=1):
-                    db.add(ActionItem(
-                        manager_id=manager_id,
-                        lead_id=lead.id,
-                        title=f"Follow-up #{i}: {customer_name}",
-                        description=(
-                            "Каскадное напоминание — дата следующего контакта "
-                            "не была явно указана в примечании к сделке."
-                        ),
-                        status=ActionItemStatus.PENDING,
-                        priority=ActionItemPriority.MEDIUM,
-                        due_date=ref_date + timedelta(weeks=weeks),
-                    ))
+            # ── Одна задача на сделку ────────────────────────────────────────
+            # Дата = из примечания (если найдена) ИЛИ ref_date + 2 недели.
+            db.add(ActionItem(
+                manager_id=manager_id,
+                lead_id=lead.id,
+                title=f"Follow-up: {customer_name}",
+                description=f"Автоматическая задача из отчёта. {date_comment}",
+                status=ActionItemStatus.PENDING,
+                priority=ActionItemPriority.MEDIUM,
+                due_date=task_date,
+            ))
 
         db.commit()
     except Exception as exc:
