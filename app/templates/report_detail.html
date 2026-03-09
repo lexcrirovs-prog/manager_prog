@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}{{ report.filename }} — CRM Отчёты{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Заголовок -->
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <div class="flex items-center gap-2 mb-1">
+        <a href="/reports" class="text-sm hover:underline" style="color: var(--color-primary)">← Все отчёты</a>
+      </div>
+      <h1 class="text-xl font-bold truncate max-w-2xl" style="color: var(--color-text)"
+          title="{{ report.filename }}">{{ report.filename }}</h1>
+      <div class="flex flex-wrap gap-4 mt-2 text-sm" style="color: var(--color-text-secondary)">
+        {% if report.manager %}
+        <span>Менеджер:
+          <a href="/managers/{{ report.manager.id }}" class="hover:underline font-medium"
+             style="color: var(--color-text)">{{ report.manager.full_name }}</a>
+        </span>
+        {% elif report.manager_name_raw %}
+        <span>Менеджер: <span style="color: var(--color-warning)">{{ report.manager_name_raw }} (не найден в БД)</span></span>
+        {% endif %}
+        {% if report.report_date_start %}
+        <span>Период:
+          {% if report.report_date_start == report.report_date_end %}
+            {{ report.report_date_start.strftime('%d.%m.%Y') }}
+          {% else %}
+            {{ report.report_date_start.strftime('%d.%m') }} – {{ report.report_date_end.strftime('%d.%m.%Y') }}
+          {% endif %}
+        </span>
+        {% endif %}
+        <span>Импортирован: {{ report.imported_at.strftime('%d.%m.%Y %H:%M') }}</span>
+      </div>
+    </div>
+    <form method="post" action="/reports/{{ report.id }}/delete"
+          onsubmit="return confirm('Удалить этот отчёт и {{ report.total_rows }} сделок?')">
+      <button type="submit" class="btn-danger text-sm px-4 py-2 rounded-lg">Удалить отчёт</button>
+    </form>
+  </div>
+
+  <!-- Сводка -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+    <div class="card p-4 text-center">
+      <p class="text-2xl font-bold" style="color: var(--color-primary)">{{ leads|length }}</p>
+      <p class="text-xs mt-1" style="color: var(--color-text-secondary)">Сделок</p>
+    </div>
+    <div class="card p-4 text-center">
+      {% set with_followup = leads | selectattr('next_step_date') | list %}
+      <p class="text-2xl font-bold" style="color: var(--color-success)">{{ with_followup|length }}</p>
+      <p class="text-xs mt-1" style="color: var(--color-text-secondary)">С датой follow-up</p>
+    </div>
+    <div class="card p-4 text-center">
+      {% set today = now().date() if now is defined else none %}
+      {% set overdue = leads | selectattr('next_step_date') | list %}
+      <p class="text-2xl font-bold" style="color: var(--color-warning)">
+        {{ report.total_amount | int if report.total_amount else 0 }}
+      </p>
+      <p class="text-xs mt-1" style="color: var(--color-text-secondary)">Σ КП</p>
+    </div>
+    <div class="card p-4 text-center">
+      <p class="text-2xl font-bold"
+         style="color: {% if report.status == 'ok' %}var(--color-success){% elif report.status == 'error' %}var(--color-danger){% else %}var(--color-warning){% endif %}">
+        {{ report.status | upper }}
+      </p>
+      <p class="text-xs mt-1" style="color: var(--color-text-secondary)">Статус импорта</p>
+    </div>
+  </div>
+
+  {% if report.error_message %}
+  <div class="card p-4 alert-danger rounded-lg">
+    <p class="text-sm font-semibold mb-1" style="color: var(--color-danger)">Ошибка импорта:</p>
+    <pre class="text-xs whitespace-pre-wrap" style="color: var(--color-text)">{{ report.error_message }}</pre>
+  </div>
+  {% endif %}
+
+  <!-- Таблица сделок -->
+  {% if leads %}
+  <div class="card overflow-hidden">
+    <div class="px-4 py-3 border-b" style="border-color: var(--color-border)">
+      <h2 class="font-semibold text-sm" style="color: var(--color-text)">Сделки из отчёта</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead style="background: var(--color-surface)">
+          <tr>
+            <th class="text-left px-4 py-3 font-medium" style="color: var(--color-text-secondary)">Клиент</th>
+            <th class="text-left px-4 py-3 font-medium" style="color: var(--color-text-secondary)">Оборудование</th>
+            <th class="text-right px-4 py-3 font-medium" style="color: var(--color-text-secondary)">Сумма КП</th>
+            <th class="text-left px-4 py-3 font-medium" style="color: var(--color-text-secondary)">Примечание</th>
+            <th class="text-left px-4 py-3 font-medium" style="color: var(--color-text-secondary)">Follow-up</th>
+            <th class="px-4 py-3"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lead in leads %}
+          <tr class="border-t hover:opacity-90"
+              style="border-color: var(--color-border); background: var(--color-card)">
+            <td class="px-4 py-3 font-medium" style="color: var(--color-text)">
+              {{ lead.customer }}
+            </td>
+            <td class="px-4 py-3 text-sm" style="color: var(--color-text-secondary)">
+              {{ lead.equipment or '—' }}
+            </td>
+            <td class="px-4 py-3 text-right font-mono text-sm" style="color: var(--color-text)">
+              {% if lead.amount %}{{ "{:,.0f}".format(lead.amount) }}{% else %}—{% endif %}
+            </td>
+            <td class="px-4 py-3 text-sm max-w-xs" style="color: var(--color-text-secondary)">
+              {% if lead.notes %}
+                <span title="{{ lead.notes }}">
+                  {{ lead.notes[:120] }}{% if lead.notes|length > 120 %}…{% endif %}
+                </span>
+              {% else %}—{% endif %}
+            </td>
+            <td class="px-4 py-3 text-sm whitespace-nowrap">
+              {% if lead.next_step_date %}
+                <span style="color: var(--color-primary)">
+                  {{ lead.next_step_date.strftime('%d.%m.%Y') }}
+                </span>
+              {% else %}
+                <span style="color: var(--color-text-secondary)">—</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 text-right">
+              <a href="/leads/{{ lead.id }}/edit"
+                 class="text-xs px-2 py-1 rounded hover:opacity-80"
+                 style="background: var(--color-primary-light); color: var(--color-primary)">
+                Редакт.
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="card p-8 text-center">
+    <p class="text-sm" style="color: var(--color-text-secondary)">Нет сделок в этом отчёте.</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -16,28 +16,49 @@ from app.database.models import LeadStatus
 
 # Маппинг русских колонок → внутренние имена (CRM-режим)
 COLUMN_MAP = {
+    # Дата обновления/взаимодействия
     "дата обновления": "update_date",
     "дата изменения": "update_date",
+    "дата": "update_date",
+
+    # Статус сделки
     "статус": "status_raw",
     "стадия": "status_raw",
     "этап": "status_raw",
+
+    # Клиент / заказчик
     "заказчик": "customer",
     "клиент": "customer",
     "компания": "customer",
     "контрагент": "customer",
     "организация": "customer",
+    "наименование компании": "customer",  # формат менеджерского отчёта
     "наименование": "customer",
     "название": "customer",
+
+    # Оборудование / КП
     "оборудование": "equipment",
+    "вид кп": "equipment",              # «Вид КП (поставка котлов/ БМК)»
+    "вид коммерческого предложения": "equipment",
+    "тип кп": "equipment",
     "товар": "equipment",
     "продукция": "equipment",
     "номенклатура": "equipment",
+
+    # Сумма
+    "сумма кп": "amount",               # «Сумма КП»
     "сумма": "amount",
     "стоимость": "amount",
     "бюджет": "amount",
+    "сумма коммерческого предложения": "amount",
+
+    # Примечание / следующий шаг → хранится в notes, NLP парсит follow-up дату
+    "примечание": "notes",              # ключевая колонка нового формата
+    "комментарий": "notes",
     "следующий шаг": "next_step",
-    "комментарий": "next_step",
-    "примечание": "next_step",
+    "описание": "notes",
+
+    # Даты
     "дата следующего шага": "next_step_date",
     "плановая дата отгрузки": "planned_shipment_date",
     "дата отгрузки": "planned_shipment_date",
@@ -312,7 +333,24 @@ def _extract_lead(row: dict, column_mapping: dict) -> dict:
             lead["status"] = _map_status(str(value) if value else None)
         elif internal_name == "customer":
             lead["customer"] = str(value).strip() if value else None
+        elif internal_name == "notes":
+            # «Примечание» — сохраняем полный текст; NLP-парсер обработает его отдельно
+            lead["notes"] = str(value).strip() if value else None
         else:
             lead[internal_name] = str(value).strip() if value else None
 
     return lead
+
+
+# ──────────────────────────────────────────────────────────────
+# Публичные синхронные функции для use-case без UploadFile
+# ──────────────────────────────────────────────────────────────
+
+def parse_bytes(content: bytes, filename: str) -> list[dict]:
+    """Парсит содержимое файла по его имени (без UploadFile).
+
+    Используется в crm_report_service при сканировании папки reports/.
+    """
+    if filename.lower().endswith(".csv"):
+        return _parse_csv(content)
+    return _parse_xlsx(content)

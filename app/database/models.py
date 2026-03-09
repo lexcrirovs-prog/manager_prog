@@ -3,6 +3,7 @@ ORM-модели базы данных для системы управлени�
 
 Таблицы:
     - employees: Сотрудники (менеджеры, руководство)
+    - crm_reports: Загруженные CRM-отчёты (один файл — одна запись)
     - leads: Сделки/Лиды из CRM-отчётов
     - action_items: Задачи и цели с дедлайнами
     - transcripts: Транскрипты совещаний
@@ -95,6 +96,47 @@ class Employee(Base):
 
 
 # ──────────────────────────────────────────────
+# crm_reports — Импортированные файлы отчётов
+# ──────────────────────────────────────────────
+
+class CrmReport(Base):
+    """Один загруженный CRM-файл отчёта (CSV/Excel).
+
+    Позволяет отслеживать историю импортов, метаданные файла
+    и агрегированную статистику по нему.
+    """
+    __tablename__ = "crm_reports"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    filename = Column(String(500), nullable=False)
+
+    # Менеджер, чей отчёт (может быть None, если не удалось сопоставить)
+    manager_id = Column(Integer, ForeignKey("employees.id"), nullable=True)
+    manager_name_raw = Column(String(200), nullable=True)  # имя из имени файла
+
+    # Период отчёта (из имени файла)
+    report_date_start = Column(Date, nullable=True)
+    report_date_end = Column(Date, nullable=True)
+
+    # Агрегаты
+    total_rows = Column(Integer, default=0, nullable=False)
+    total_amount = Column(Float, default=0.0, nullable=False)
+
+    # Статус импорта: ok | partial | error
+    status = Column(String(20), default="ok", nullable=False)
+    error_message = Column(Text, nullable=True)
+
+    imported_at = Column(DateTime, default=func.now(), nullable=False)
+
+    # Связи
+    manager = relationship("Employee", foreign_keys=[manager_id])
+    leads = relationship("Lead", back_populates="crm_report")
+
+    def __repr__(self) -> str:
+        return f"<CrmReport {self.id}: {self.filename}>"
+
+
+# ──────────────────────────────────────────────
 # leads — Сделки/Лиды
 # ──────────────────────────────────────────────
 
@@ -119,12 +161,17 @@ class Lead(Base):
     source = Column(String(100), nullable=True)
     upload_batch_id = Column(String(50), nullable=True)
     notes = Column(Text, nullable=True)
+
+    # Привязка к файлу-отчёту (заполняется при импорте через CrmReport)
+    crm_report_id = Column(Integer, ForeignKey("crm_reports.id"), nullable=True)
+
     created_at = Column(DateTime, default=func.now(), nullable=False)
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
 
     # Связи
     manager = relationship("Employee", back_populates="leads")
     action_items = relationship("ActionItem", back_populates="lead", cascade="all, delete-orphan")
+    crm_report = relationship("CrmReport", back_populates="leads")
 
     def __repr__(self) -> str:
         return f"<Lead {self.id}: {self.customer}>"

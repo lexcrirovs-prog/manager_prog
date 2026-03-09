@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}CRM Отчёты — Sales Manager{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Заголовок + кнопка импорта -->
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold" style="color: var(--color-text)">CRM Отчёты менеджеров</h1>
+      <p class="text-sm mt-1" style="color: var(--color-text-secondary)">
+        Папка для файлов: <code class="px-1 rounded text-xs" style="background: var(--color-surface)">{{ reports_dir }}</code>
+      </p>
+    </div>
+    <form method="post" action="/reports/scan">
+      <button type="submit"
+              class="btn-primary px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+        </svg>
+        Импортировать новые файлы
+      </button>
+    </form>
+  </div>
+
+  <!-- Файлы ожидающие импорта -->
+  {% if pending_files %}
+  <div class="card p-4 alert-warning rounded-lg">
+    <p class="text-sm font-semibold mb-2" style="color: var(--color-text)">
+      Файлы в папке, ещё не импортированные ({{ pending_files|length }}):
+    </p>
+    <ul class="space-y-1">
+      {% for fname in pending_files %}
+      <li class="text-sm flex items-center gap-2" style="color: var(--color-text)">
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"/>
+        </svg>
+        {{ fname }}
+      </li>
+      {% endfor %}
+    </ul>
+    <form method="post" action="/reports/scan" class="mt-3">
+      <button type="submit" class="btn-primary text-xs px-3 py-1.5 rounded">
+        Импортировать сейчас
+      </button>
+    </form>
+  </div>
+  {% endif %}
+
+  <!-- Таблица импортированных отчётов -->
+  {% if reports %}
+  <div class="card overflow-hidden">
+    <div class="px-4 py-3 border-b" style="border-color: var(--color-border)">
+      <h2 class="font-semibold text-sm" style="color: var(--color-text)">
+        Импортированные отчёты ({{ reports|length }})
+      </h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead style="background: var(--color-surface)">
+          <tr>
+            <th class="text-left px-4 py-3 font-medium" style="color: var(--color-text-secondary)">Файл</th>
+            <th class="text-left px-4 py-3 font-medium" style="color: var(--color-text-secondary)">Менеджер</th>
+            <th class="text-left px-4 py-3 font-medium" style="color: var(--color-text-secondary)">Период</th>
+            <th class="text-right px-4 py-3 font-medium" style="color: var(--color-text-secondary)">Сделок</th>
+            <th class="text-right px-4 py-3 font-medium" style="color: var(--color-text-secondary)">Σ КП</th>
+            <th class="text-left px-4 py-3 font-medium" style="color: var(--color-text-secondary)">Импортирован</th>
+            <th class="text-center px-4 py-3 font-medium" style="color: var(--color-text-secondary)">Статус</th>
+            <th class="px-4 py-3"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in reports %}
+          <tr class="border-t hover:opacity-90"
+              style="border-color: var(--color-border); background: var(--color-card)">
+
+            <!-- Файл -->
+            <td class="px-4 py-3">
+              <a href="/reports/{{ r.id }}"
+                 class="font-medium hover:underline truncate block max-w-xs"
+                 style="color: var(--color-primary)" title="{{ r.filename }}">
+                {{ r.filename }}
+              </a>
+              {% if r.manager_name_raw and not r.manager %}
+              <span class="text-xs" style="color: var(--color-text-secondary)">
+                Менеджер не сопоставлен
+              </span>
+              {% endif %}
+            </td>
+
+            <!-- Менеджер -->
+            <td class="px-4 py-3" style="color: var(--color-text)">
+              {% if r.manager %}
+                <a href="/managers/{{ r.manager.id }}" class="hover:underline"
+                   style="color: var(--color-text)">{{ r.manager.full_name }}</a>
+              {% elif r.manager_name_raw %}
+                <span style="color: var(--color-text-secondary)">{{ r.manager_name_raw }}</span>
+              {% else %}
+                <span style="color: var(--color-text-secondary)">—</span>
+              {% endif %}
+            </td>
+
+            <!-- Период -->
+            <td class="px-4 py-3 text-sm" style="color: var(--color-text-secondary)">
+              {% if r.report_date_start and r.report_date_end %}
+                {% if r.report_date_start == r.report_date_end %}
+                  {{ r.report_date_start.strftime('%d.%m.%Y') }}
+                {% else %}
+                  {{ r.report_date_start.strftime('%d.%m') }} – {{ r.report_date_end.strftime('%d.%m.%Y') }}
+                {% endif %}
+              {% else %}—{% endif %}
+            </td>
+
+            <!-- Сделок -->
+            <td class="px-4 py-3 text-right font-mono" style="color: var(--color-text)">
+              {{ r.total_rows }}
+            </td>
+
+            <!-- Σ КП -->
+            <td class="px-4 py-3 text-right font-mono text-sm" style="color: var(--color-text)">
+              {% if r.total_amount %}
+                {{ "{:,.0f}".format(r.total_amount) }}
+              {% else %}—{% endif %}
+            </td>
+
+            <!-- Дата импорта -->
+            <td class="px-4 py-3 text-sm" style="color: var(--color-text-secondary)">
+              {{ r.imported_at.strftime('%d.%m.%Y %H:%M') }}
+            </td>
+
+            <!-- Статус -->
+            <td class="px-4 py-3 text-center">
+              {% if r.status == 'ok' %}
+                <span class="badge-status" style="background: var(--color-success-light); color: var(--color-success)">ОК</span>
+              {% elif r.status == 'error' %}
+                <span class="badge-status" style="background: var(--color-danger-light); color: var(--color-danger)"
+                      title="{{ r.error_message or '' }}">Ошибка</span>
+              {% elif r.status == 'partial' %}
+                <span class="badge-status" style="background: var(--color-warning-light); color: var(--color-warning)">Частично</span>
+              {% else %}
+                <span class="badge-status" style="background: var(--color-surface); color: var(--color-text-secondary)">{{ r.status }}</span>
+              {% endif %}
+            </td>
+
+            <!-- Действия -->
+            <td class="px-4 py-3 text-right whitespace-nowrap">
+              <a href="/reports/{{ r.id }}"
+                 class="text-xs px-2 py-1 rounded hover:opacity-80 mr-1"
+                 style="background: var(--color-primary-light); color: var(--color-primary)">
+                Детали
+              </a>
+              <form method="post" action="/reports/{{ r.id }}/delete" class="inline"
+                    onsubmit="return confirm('Удалить отчёт и все {{ r.total_rows }} сделок?')">
+                <button type="submit"
+                        class="text-xs px-2 py-1 rounded hover:opacity-80"
+                        style="background: var(--color-danger-light); color: var(--color-danger)">
+                  Удалить
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% else %}
+  <!-- Пусто -->
+  <div class="card p-12 text-center">
+    <svg class="w-12 h-12 mx-auto mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"/>
+    </svg>
+    <p class="text-sm" style="color: var(--color-text-secondary)">
+      Ни одного отчёта ещё не импортировано.
+    </p>
+    <p class="text-xs mt-2" style="color: var(--color-text-secondary)">
+      Поместите CSV/Excel-файлы менеджеров в папку
+      <code>{{ reports_dir }}</code> и нажмите «Импортировать новые файлы».
+    </p>
+  </div>
+  {% endif %}
+
+  <!-- Инструкция по именованию файлов -->
+  <div class="card p-4">
+    <h3 class="text-sm font-semibold mb-2" style="color: var(--color-text)">Как называть файлы</h3>
+    <ul class="text-xs space-y-1" style="color: var(--color-text-secondary)">
+      <li><code class="px-1 rounded" style="background: var(--color-surface)">Отчет CRM 01-28.02.2026(Боев).csv</code> — имя менеджера в скобках</li>
+      <li><code class="px-1 rounded" style="background: var(--color-surface)">report_Иванов_2026.xlsx</code> — имя между подчёркиваниями</li>
+      <li>Система автоматически сопоставит имя из файла с записью в базе менеджеров.</li>
+    </ul>
+    <h3 class="text-sm font-semibold mt-3 mb-2" style="color: var(--color-text)">Поддерживаемые колонки</h3>
+    <ul class="text-xs space-y-1" style="color: var(--color-text-secondary)">
+      <li><strong>Наименование компании / Заказчик</strong> — название клиента</li>
+      <li><strong>Вид КП / Оборудование</strong> — что предлагается</li>
+      <li><strong>Дата</strong> — дата взаимодействия</li>
+      <li><strong>Сумма КП / Сумма</strong> — сумма коммерческого предложения</li>
+      <li><strong>Примечание / Комментарий</strong> — свободный текст, из которого автоматически извлекается дата следующего контакта</li>
+    </ul>
+  </div>
+
+</div>
+{% endblock %}
