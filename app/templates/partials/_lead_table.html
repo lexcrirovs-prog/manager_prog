@@ -20,12 +20,23 @@
     <span class="badge-status" style="{{ colors.get(status.value, '') }}">{{ labels.get(status.value, status.value) }}</span>
 {% endmacro %}
 
+{% macro priority_badge(priority) %}
+    {% if priority and priority.value == 'high' %}
+        <span class="badge-status" style="background: #fee2e2; color: #dc2626;" title="Активная борьба за реальную продажу">🔴 Высокий</span>
+    {% elif priority and priority.value == 'medium' %}
+        <span class="badge-status" style="background: #fef3c7; color: #d97706;" title="Был запрос, но конкуренции нет">🟡 Средний</span>
+    {% else %}
+        <span class="badge-status" style="background: #f1f5f9; color: #64748b;" title="Холодный обзвон / рассылка на будущее">🔵 Низкий</span>
+    {% endif %}
+{% endmacro %}
+
 {% if leads %}
 <div class="overflow-x-auto">
     <table class="w-full text-sm">
         <thead>
             <tr class="text-left" style="border-bottom: 2px solid var(--color-border);">
                 <th class="p-2">Заказчик</th>
+                <th class="p-2">Приоритет</th>
                 <th class="p-2">Статус</th>
                 <th class="p-2">Оборудование</th>
                 <th class="p-2">Сумма</th>
@@ -39,6 +50,7 @@
             {% for lead in leads %}
             <tr style="border-bottom: 1px solid var(--color-border);" class="hover:opacity-90">
                 <td class="p-2 font-medium">{{ lead.customer }}</td>
+                <td class="p-2">{{ priority_badge(lead.priority) }}</td>
                 <td class="p-2">{{ status_badge(lead.status) }}</td>
                 <td class="p-2" style="color: var(--color-text-secondary)">{{ lead.equipment or '—' }}</td>
                 <td class="p-2">{% if lead.amount %}{{ "{:,.0f}".format(lead.amount) }} ₽{% else %}—{% endif %}</td>

@@ -61,9 +61,41 @@
                 </div>
             </div>
 
+            <!-- Примечание + авто-подсказка по приоритету -->
             <div>
-                <label class="block text-sm font-medium mb-1">Заметки</label>
-                <textarea name="notes" rows="2" class="input-themed w-full">{{ lead.notes if lead and lead.notes else '' }}</textarea>
+                <label class="block text-sm font-medium mb-1">Примечание</label>
+                <textarea name="notes" id="notes-field" rows="3" class="input-themed w-full"
+                    placeholder="Опишите ситуацию — приоритет будет подобран автоматически">{{ lead.notes if lead and lead.notes else '' }}</textarea>
+                <p class="text-xs mt-1" style="color: var(--color-text-secondary)">
+                    Приоритет определяется автоматически, если не выбран вручную:
+                    упоминание конкурентов/цены → <strong>Высокий</strong>;
+                    запрос на котёл → <strong>Средний</strong>;
+                    прочее / пусто → <strong>Низкий</strong>.
+                </p>
+            </div>
+
+            <!-- Приоритет -->
+            <div>
+                <label class="block text-sm font-medium mb-1">Приоритет</label>
+                <select name="priority" id="priority-field" class="input-themed w-full">
+                    <option value="" {% if not lead or not lead.priority %}selected{% endif %}>— Определить автоматически из примечания —</option>
+                    <option value="low"    {% if lead and lead.priority and lead.priority.value == 'low'    %}selected{% endif %}>
+                        Низкий — рассылка / холодный обзвон «на будущее»
+                    </option>
+                    <option value="medium" {% if lead and lead.priority and lead.priority.value == 'medium' %}selected{% endif %}>
+                        Средний — был запрос, но реальной борьбы нет
+                    </option>
+                    <option value="high"   {% if lead and lead.priority and lead.priority.value == 'high'   %}selected{% endif %}>
+                        Высокий — активная борьба за реальную продажу
+                    </option>
+                </select>
+
+                <!-- Блок-подсказка с описанием уровней приоритета -->
+                <div class="mt-2 rounded p-3 text-xs space-y-1" style="background: var(--color-bg-secondary); border: 1px solid var(--color-border);">
+                    <div><span class="font-semibold" style="color: #64748b">🔵 Низкий</span> — клиенту отправлена рассылка или совершён холодный звонок; ответ: «рассмотрим вас на будущее».</div>
+                    <div><span class="font-semibold" style="color: #d97706">🟡 Средний</span> — поступил запрос на котёл или оборудование, но конкуренции за сделку нет.</div>
+                    <div><span class="font-semibold" style="color: #dc2626">🔴 Высокий</span> — идёт активная борьба за реальную продажу (ценовая конкуренция с другими поставщиками).</div>
+                </div>
             </div>
 
             <div class="flex gap-3">

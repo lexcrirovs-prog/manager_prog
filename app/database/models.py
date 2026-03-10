@@ -64,6 +64,19 @@ class ActionItemPriority(str, enum.Enum):
     CRITICAL = "critical"
 
 
+class LeadPriority(str, enum.Enum):
+    """Приоритеты клиентов/сделок.
+
+    LOW (Низкий) — клиентам была отправлена рассылка или совершён холодный
+        звонок; ответ: «рассмотрим вас на будущее».
+    MEDIUM (Средний) — поступил запрос, но реальной борьбы за котёл нет.
+    HIGH (Высокий) — идёт активная борьба за реальную продажу.
+    """
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
 # ──────────────────────────────────────────────
 # employees — Сотрудники
 # ──────────────────────────────────────────────
@@ -114,6 +127,9 @@ class Lead(Base):
     next_step = Column(Text, nullable=True)
     next_step_date = Column(Date, nullable=True)
     planned_shipment_date = Column(Date, nullable=True)
+
+    # Приоритет сделки
+    priority = Column(SAEnum(LeadPriority), default=LeadPriority.LOW, nullable=False, server_default="low")
 
     # Служебные поля
     source = Column(String(100), nullable=True)

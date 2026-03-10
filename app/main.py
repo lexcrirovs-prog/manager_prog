@@ -24,10 +24,26 @@ TEMPLATES_DIR = BASE_DIR / "templates"
 STATIC_DIR = BASE_DIR / "static"
 
 
+def _migrate_database():
+    """Применяет миграции к существующим таблицам (idempotent)."""
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        # Добавляем колонку priority в таблицу leads (если её нет)
+        try:
+            conn.execute(text(
+                "ALTER TABLE leads ADD COLUMN priority VARCHAR(10) NOT NULL DEFAULT 'low'"
+            ))
+            conn.commit()
+        except Exception:
+            # Колонка уже существует — игнорируем
+            conn.rollback()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Создание таблиц и сидирование при старте приложения."""
     Base.metadata.create_all(bind=engine)
+    _migrate_database()
     with SessionLocal() as db:
         seed_database(db)
     yield

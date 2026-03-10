@@ -23,8 +23,19 @@
             <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Статус</label>
             <select name="status" class="input-themed text-sm">
                 <option value="">Все</option>
+                {% set status_labels = {'new': 'Новая', 'in_progress': 'В работе', 'negotiation': 'Переговоры', 'contract': 'Контракт', 'won': 'Выиграна', 'lost': 'Проиграна', 'stale': 'Неактивна'} %}
                 {% for s in statuses %}
-                <option value="{{ s }}" {% if filter_status == s %}selected{% endif %}>{{ s }}</option>
+                <option value="{{ s }}" {% if filter_status == s %}selected{% endif %}>{{ status_labels.get(s, s) }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Приоритет</label>
+            <select name="priority" class="input-themed text-sm">
+                <option value="">Все</option>
+                {% set priority_labels = {'low': '🔵 Низкий', 'medium': '🟡 Средний', 'high': '🔴 Высокий'} %}
+                {% for p in priorities %}
+                <option value="{{ p }}" {% if filter_priority == p %}selected{% endif %}>{{ priority_labels.get(p, p) }}</option>
                 {% endfor %}
             </select>
         </div>
