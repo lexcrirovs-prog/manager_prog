@@ -7,7 +7,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database.engine import get_db
-from app.database.models import Employee, Lead, LeadStatus
+from app.database.models import Employee, Lead, LeadStatus, LeadPriority
 
 router = APIRouter(prefix="/leads", tags=["leads"])
 
@@ -31,12 +31,14 @@ def lead_list(
     leads = query.order_by(Lead.update_date.desc()).all()
     employees = db.query(Employee).filter(Employee.is_active == True).all()
     statuses = [s.value for s in LeadStatus]
+    priorities = [p.value for p in LeadPriority]
 
     return templates.TemplateResponse("lead_list.html", {
         "request": request,
         "leads": leads,
         "employees": employees,
         "statuses": statuses,
+        "priorities": priorities,
         "filter_manager_id": manager_id,
         "filter_status": status,
         "today": date.today(),
@@ -50,12 +52,14 @@ def new_lead_form(request: Request, db: Session = Depends(get_db)):
 
     employees = db.query(Employee).filter(Employee.is_active == True).all()
     statuses = [s.value for s in LeadStatus]
+    priorities = [p.value for p in LeadPriority]
 
     return templates.TemplateResponse("lead_form.html", {
         "request": request,
         "lead": None,
         "employees": employees,
         "statuses": statuses,
+        "priorities": priorities,
     })
 
 
@@ -64,6 +68,7 @@ async def create_lead(
     manager_id: int = Form(...),
     customer: str = Form(...),
     status: str = Form("new"),
+    priority: str = Form("low"),
     equipment: str = Form(""),
     amount: float = Form(None),
     next_step: str = Form(""),
@@ -77,6 +82,7 @@ async def create_lead(
         manager_id=manager_id,
         customer=customer,
         status=LeadStatus(status),
+        priority=LeadPriority(priority),
         equipment=equipment or None,
         amount=amount,
         next_step=next_step or None,
@@ -102,12 +108,14 @@ def edit_lead_form(lead_id: int, request: Request, db: Session = Depends(get_db)
 
     employees = db.query(Employee).filter(Employee.is_active == True).all()
     statuses = [s.value for s in LeadStatus]
+    priorities = [p.value for p in LeadPriority]
 
     return templates.TemplateResponse("lead_form.html", {
         "request": request,
         "lead": lead,
         "employees": employees,
         "statuses": statuses,
+        "priorities": priorities,
     })
 
 
@@ -117,6 +125,7 @@ async def update_lead(
     manager_id: int = Form(...),
     customer: str = Form(...),
     status: str = Form("new"),
+    priority: str = Form("low"),
     equipment: str = Form(""),
     amount: float = Form(None),
     next_step: str = Form(""),
@@ -133,6 +142,7 @@ async def update_lead(
     lead.manager_id = manager_id
     lead.customer = customer
     lead.status = LeadStatus(status)
+    lead.priority = LeadPriority(priority)
     lead.equipment = equipment or None
     lead.amount = amount
     lead.next_step = next_step or None

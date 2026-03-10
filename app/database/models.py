@@ -43,6 +43,18 @@ class LeadStatus(str, enum.Enum):
     STALE = "stale"
 
 
+class LeadPriority(str, enum.Enum):
+    """Приоритеты сделок.
+
+    LOW    — холодный контакт / рассылка, ответ «рассмотрим в будущем»
+    MEDIUM — был конкретный запрос на котёл, но реальной конкуренции нет
+    HIGH   — идёт борьба за продажу: конкуренция с другими поставщиками по цене
+    """
+    LOW    = "low"
+    MEDIUM = "medium"
+    HIGH   = "high"
+
+
 class ProductCategory(str, enum.Enum):
     """Категории продукции."""
     WATER = "water"
@@ -155,6 +167,7 @@ class Lead(Base):
     # Колонки из Excel (русские названия маппятся при парсинге)
     update_date = Column(Date, nullable=True)
     status = Column(SAEnum(LeadStatus), default=LeadStatus.NEW, nullable=False)
+    priority = Column(SAEnum(LeadPriority), default=LeadPriority.LOW, nullable=False)
     customer = Column(String(300), nullable=False)
     equipment = Column(String(300), nullable=True)
     amount = Column(Float, nullable=True)

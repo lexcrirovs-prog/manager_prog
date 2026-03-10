@@ -11,11 +11,12 @@ from sqlalchemy.orm import Session
 from app.database.engine import get_db
 from app.database.models import (
     Employee, Lead, ActionItem, ActionItemStatus, ActionItemPriority,
-    Transcript, Sale, LeadStatus,
+    Transcript, Sale, LeadStatus, LeadPriority,
 )
 from app.services.excel_parser import parse_excel_upload
 from app.services.transcript_parser import parse_transcript
 from app.services.followup_parser import parse_followup_date
+from app.services.priority_parser import detect_lead_priority
 
 # Срок follow-up по умолчанию (если дата не найдена в примечании)
 _DEFAULT_FOLLOWUP_WEEKS = 2
@@ -148,11 +149,14 @@ async def upload_excel(
                 date_comment = f"Дата в примечании не указана — назначено через {_DEFAULT_FOLLOWUP_WEEKS} недели."
 
             customer_name = row.get("customer", "Неизвестный")
+            # Автоопределение приоритета по тексту примечания
+            lead_priority = detect_lead_priority(notes_text)
 
             lead = Lead(
                 manager_id=manager_id,
                 update_date=row.get("update_date"),
                 status=row.get("status", LeadStatus.NEW),
+                priority=lead_priority,
                 customer=customer_name,
                 equipment=row.get("equipment"),
                 amount=row.get("amount"),
