@@ -80,6 +80,11 @@ STATUS_MAP = {
     "потеряна": LeadStatus.LOST,
     "неактивна": LeadStatus.STALE,
     "заморожена": LeadStatus.STALE,
+    "сделка": LeadStatus.DEAL,
+    "договор подписан": LeadStatus.DEAL,
+    "отказ": LeadStatus.REFUSAL,
+    "отказали": LeadStatus.REFUSAL,
+    "отказ клиента": LeadStatus.REFUSAL,
 }
 
 

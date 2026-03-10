@@ -38,9 +38,11 @@ class LeadStatus(str, enum.Enum):
     IN_PROGRESS = "in_progress"
     NEGOTIATION = "negotiation"
     CONTRACT = "contract"
+    DEAL = "deal"
     WON = "won"
     LOST = "lost"
     STALE = "stale"
+    REFUSAL = "refusal"
 
 
 class LeadPriority(str, enum.Enum):
@@ -53,6 +55,7 @@ class LeadPriority(str, enum.Enum):
     LOW    = "low"
     MEDIUM = "medium"
     HIGH   = "high"
+    FOCUS  = "focus"
 
 
 class ProductCategory(str, enum.Enum):
@@ -94,6 +97,10 @@ class Employee(Base):
     phone = Column(String(50), nullable=True)
     notes = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
+    # Авторизация
+    username = Column(String(50), unique=True, nullable=True)
+    password_hash = Column(String(200), nullable=True)
+    system_role = Column(String(20), default="manager", nullable=False)
     created_at = Column(DateTime, default=func.now(), nullable=False)
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
 

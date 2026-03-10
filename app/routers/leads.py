@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.database.engine import get_db
 from app.database.models import Employee, Lead, LeadStatus, LeadPriority
+from app.services.auth_service import get_current_user
 
 router = APIRouter(prefix="/leads", tags=["leads"])
 
@@ -21,12 +22,36 @@ def lead_list(
 ):
     """Список всех сделок с фильтрацией по менеджеру и статусу."""
     from app.main import templates
+    from datetime import timedelta
+
+    current_user = get_current_user(request, db)
+    if current_user is None:
+        return RedirectResponse("/login", status_code=302)
+
+    show_old     = request.query_params.get("show_old")
+    show_refusal = request.query_params.get("show_refusal")
 
     query = db.query(Lead)
-    if manager_id:
+
+    # Менеджер видит только свои лиды
+    if current_user.system_role != "admin":
+        query = query.filter(Lead.manager_id == current_user.id)
+    elif manager_id:
         query = query.filter(Lead.manager_id == manager_id)
+
     if status:
         query = query.filter(Lead.status == status)
+
+    # По умолчанию скрываем отказы
+    if not show_refusal and not status:
+        query = query.filter(Lead.status != LeadStatus.REFUSAL)
+
+    # По умолчанию скрываем лиды старше 60 дней
+    if not show_old:
+        cutoff = date.today() - timedelta(days=60)
+        query = query.filter(
+            (Lead.update_date >= cutoff) | (Lead.update_date.is_(None))
+        )
 
     leads = query.order_by(Lead.update_date.desc()).all()
     employees = db.query(Employee).filter(Employee.is_active == True).all()
@@ -35,12 +60,15 @@ def lead_list(
 
     return templates.TemplateResponse("lead_list.html", {
         "request": request,
+        "current_user": current_user,
         "leads": leads,
         "employees": employees,
         "statuses": statuses,
         "priorities": priorities,
         "filter_manager_id": manager_id,
         "filter_status": status,
+        "show_old": show_old,
+        "show_refusal": show_refusal,
         "today": date.today(),
     })
 
@@ -50,12 +78,17 @@ def new_lead_form(request: Request, db: Session = Depends(get_db)):
     """Форма создания новой сделки."""
     from app.main import templates
 
+    current_user = get_current_user(request, db)
+    if current_user is None:
+        return RedirectResponse("/login", status_code=302)
+
     employees = db.query(Employee).filter(Employee.is_active == True).all()
     statuses = [s.value for s in LeadStatus]
     priorities = [p.value for p in LeadPriority]
 
     return templates.TemplateResponse("lead_form.html", {
         "request": request,
+        "current_user": current_user,
         "lead": None,
         "employees": employees,
         "statuses": statuses,
@@ -102,6 +135,10 @@ def edit_lead_form(lead_id: int, request: Request, db: Session = Depends(get_db)
     """Форма редактирования сделки."""
     from app.main import templates
 
+    current_user = get_current_user(request, db)
+    if current_user is None:
+        return RedirectResponse("/login", status_code=302)
+
     lead = db.query(Lead).get(lead_id)
     if not lead:
         return RedirectResponse("/leads", status_code=302)
@@ -112,6 +149,7 @@ def edit_lead_form(lead_id: int, request: Request, db: Session = Depends(get_db)
 
     return templates.TemplateResponse("lead_form.html", {
         "request": request,
+        "current_user": current_user,
         "lead": lead,
         "employees": employees,
         "statuses": statuses,

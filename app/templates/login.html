@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход — Sales Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/themes.css">
+    <script src="/static/js/theme.js"></script>
+    <style>.hidden { display: none !important; }</style>
+</head>
+<body class="min-h-screen flex items-center justify-center" style="background: var(--color-bg); color: var(--color-text);">
+    <div class="card p-8 w-full max-w-sm">
+        <h1 class="text-2xl font-bold mb-1" style="color: var(--color-primary)">Sales Manager</h1>
+        <p class="text-sm mb-6" style="color: var(--color-text-secondary)">Войдите в систему</p>
+
+        {% if error %}
+        <div class="alert-danger p-3 rounded mb-4 text-sm">
+            Неверный логин или пароль
+        </div>
+        {% endif %}
+
+        <form method="POST" action="/login" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Логин</label>
+                <input type="text" name="username" autocomplete="username"
+                       class="input-themed w-full" required autofocus>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Пароль</label>
+                <input type="password" name="password" autocomplete="current-password"
+                       class="input-themed w-full" required>
+            </div>
+            <button type="submit" class="btn-primary w-full py-2 rounded font-medium">
+                Войти
+            </button>
+        </form>
+    </div>
+</body>
+</html>

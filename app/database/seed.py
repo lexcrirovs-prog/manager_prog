@@ -10,6 +10,16 @@ from app.database.models import (
     Employee, Objection, ProductCategory,
 )
 
+# Логины для существующих сотрудников (пароли пустые — задаются позже)
+EMPLOYEE_LOGINS: dict[str, str] = {
+    "Сергей Глинкин":     "GSV",
+    "Григорий Варгазин":  "VRGZ",
+    "Александр Боев":     "CFO",
+    "Евгений Ведмиденко": "SRT",
+    "Светлана Филаткина": "SFI",
+    "Ракипов Рустам":     "Tats",
+}
+
 
 SEED_EMPLOYEES = [
     {
@@ -130,4 +140,40 @@ def seed_database(db: Session) -> None:
 
     if db.query(Objection).count() == 0:
         _seed_objections(db, SEED_OBJECTIONS)
+        db.commit()
+
+    # Назначить логины существующим сотрудникам (если ещё не назначены)
+    _seed_logins(db)
+
+    # Создать/обновить admin-пользователя
+    _seed_admin(db)
+
+
+def _seed_logins(db: Session) -> None:
+    """Назначает username сотрудникам по EMPLOYEE_LOGINS."""
+    for emp in db.query(Employee).all():
+        login = EMPLOYEE_LOGINS.get(emp.full_name)
+        if login and emp.username != login:
+            emp.username = login
+            if emp.system_role is None:
+                emp.system_role = "manager"
+    db.commit()
+
+
+def _seed_admin(db: Session) -> None:
+    """Создаёт администратора (admin/admin) если его нет."""
+    from app.services.auth_service import hash_password
+    admin = db.query(Employee).filter(Employee.username == "admin").first()
+    if admin is None:
+        admin = Employee(
+            full_name="Администратор",
+            role="admin",
+            regions="",
+            product_category=ProductCategory.WATER,
+            is_active=True,
+            username="admin",
+            password_hash=hash_password("admin"),
+            system_role="admin",
+        )
+        db.add(admin)
         db.commit()

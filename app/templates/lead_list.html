@@ -10,6 +10,8 @@
 <!-- Фильтры -->
 <div class="card p-4 mb-4">
     <form method="GET" action="/leads" class="flex flex-wrap gap-3 items-end">
+        {% if show_old %}<input type="hidden" name="show_old" value="1">{% endif %}
+        {% if show_refusal %}<input type="hidden" name="show_refusal" value="1">{% endif %}
         <div>
             <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Менеджер</label>
             <select name="manager_id" class="input-themed text-sm">
@@ -23,14 +25,44 @@
             <label class="block text-xs mb-1" style="color: var(--color-text-secondary)">Статус</label>
             <select name="status" class="input-themed text-sm">
                 <option value="">Все</option>
+                {% set status_labels = {'new':'Новая','in_progress':'В работе','negotiation':'Переговоры','contract':'Контракт','deal':'Сделка','won':'Выиграна','lost':'Проиграна','stale':'Неактивна','refusal':'Отказ'} %}
                 {% for s in statuses %}
-                <option value="{{ s }}" {% if filter_status == s %}selected{% endif %}>{{ s }}</option>
+                <option value="{{ s }}" {% if filter_status == s %}selected{% endif %}>{{ status_labels.get(s, s) }}</option>
                 {% endfor %}
             </select>
         </div>
         <button type="submit" class="btn-primary text-sm px-4 py-1.5 rounded">Фильтр</button>
         <a href="/leads" class="text-sm px-4 py-1.5 rounded border" style="border-color: var(--color-border)">Сброс</a>
     </form>
+
+    <!-- Переключатели дополнительных фильтров -->
+    <div class="flex flex-wrap gap-4 mt-3 pt-3" style="border-top: 1px solid var(--color-border)">
+        {% set base_mgr = ('&manager_id=' ~ filter_manager_id) if filter_manager_id else '' %}
+        {% set base_st  = ('&status=' ~ filter_status) if filter_status else '' %}
+        {% if show_old %}
+        <a href="/leads?{{ base_mgr }}{{ base_st }}{% if show_refusal %}&show_refusal=1{% endif %}"
+           class="text-xs hover:underline" style="color: var(--color-primary)">
+            ✓ Показаны старые (> 2 мес.) — Скрыть
+        </a>
+        {% else %}
+        <a href="/leads?show_old=1{{ base_mgr }}{{ base_st }}{% if show_refusal %}&show_refusal=1{% endif %}"
+           class="text-xs hover:underline" style="color: var(--color-text-secondary)">
+            Показать старые (> 2 мес.)
+        </a>
+        {% endif %}
+
+        {% if show_refusal %}
+        <a href="/leads?{{ base_mgr }}{{ base_st }}{% if show_old %}&show_old=1{% endif %}"
+           class="text-xs hover:underline" style="color: var(--color-primary)">
+            ✓ Показаны отказы — Скрыть
+        </a>
+        {% else %}
+        <a href="/leads?show_refusal=1{{ base_mgr }}{{ base_st }}{% if show_old %}&show_old=1{% endif %}"
+           class="text-xs hover:underline" style="color: var(--color-text-secondary)">
+            Показать отказы
+        </a>
+        {% endif %}
+    </div>
 </div>
 
 <!-- Таблица -->

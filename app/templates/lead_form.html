@@ -46,6 +46,7 @@
                     <option value="low"    {% if not lead or lead.priority.value == 'low'    %}selected{% endif %}>⬇ Низкий — холодный контакт / «рассмотрим в будущем»</option>
                     <option value="medium" {% if lead and lead.priority.value == 'medium' %}selected{% endif %}>➡ Средний — конкретный запрос на котёл, конкуренции нет</option>
                     <option value="high"   {% if lead and lead.priority.value == 'high'   %}selected{% endif %}>⬆ Высокий — идёт борьба за продажу с другими поставщиками</option>
+                    <option value="focus"  {% if lead and lead.priority.value == 'focus'  %}selected{% endif %}>🎯 Фокус — ключевая сделка, требует ежедневного внимания</option>
                 </select>
                 <p class="text-xs mt-1" style="color: var(--color-text-secondary)">Определяется автоматически по тексту примечания при загрузке отчёта. Можно изменить вручную.</p>
             </div>

@@ -10,6 +10,7 @@ from app.database.engine import get_db
 from app.database.models import (
     Employee, ActionItem, ActionItemStatus, ActionItemPriority, Lead,
 )
+from app.services.auth_service import get_current_user
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -24,9 +25,18 @@ def task_list(
     """Список задач с фильтрацией."""
     from app.main import templates
 
+    current_user = get_current_user(request, db)
+    if current_user is None:
+        return RedirectResponse("/login", status_code=302)
+
     query = db.query(ActionItem)
-    if manager_id:
+
+    # Менеджер видит только свои задачи
+    if current_user.system_role != "admin":
+        query = query.filter(ActionItem.manager_id == current_user.id)
+    elif manager_id:
         query = query.filter(ActionItem.manager_id == manager_id)
+
     if status:
         query = query.filter(ActionItem.status == status)
 
@@ -45,6 +55,7 @@ def task_list(
 
     return templates.TemplateResponse("action_items.html", {
         "request": request,
+        "current_user": current_user,
         "tasks": tasks,
         "employees": employees,
         "statuses": statuses,

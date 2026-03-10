@@ -26,6 +26,30 @@
 <!-- Алерты -->
 {% include "partials/_alerts.html" %}
 
+<!-- Объекты в фокусе -->
+{% if focus_leads %}
+<div class="mb-6">
+    <h2 class="text-lg font-semibold mb-3">🎯 Объекты в фокусе</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {% for lead in focus_leads %}
+        <a href="/leads/{{ lead.id }}/edit" class="card p-4 block hover:shadow-lg transition-shadow" style="border-left: 4px solid #7c3aed;">
+            <div class="font-semibold text-sm">{{ lead.customer }}</div>
+            <div class="text-xs mt-1" style="color: var(--color-text-secondary)">{{ lead.equipment or '—' }}</div>
+            {% if lead.amount %}
+            <div class="text-sm font-bold mt-2" style="color: var(--color-primary)">{{ "{:,.0f}".format(lead.amount) }} ₽</div>
+            {% endif %}
+            {% if lead.next_step_date %}
+            <div class="text-xs mt-1" style="color: var(--color-danger)">📅 {{ lead.next_step_date }}</div>
+            {% endif %}
+            {% if lead.next_step %}
+            <div class="text-xs mt-1" style="color: var(--color-text-secondary)">{{ lead.next_step[:60] }}{% if lead.next_step|length > 60 %}...{% endif %}</div>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 <!-- Календарь отгрузок -->
 {% include "partials/_calendar.html" %}
 

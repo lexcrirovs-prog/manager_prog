@@ -4,31 +4,55 @@
         ⚠ Требует внимания ({{ alerts.total_count }})
     </h2>
 
+    {% set ns = namespace(idx=0) %}
+
     {% if alerts.stale_leads %}
-    <div class="mb-4">
+    <div class="mb-2">
         <h3 class="text-sm font-medium mb-2" style="color: var(--color-text-secondary)">Устаревшие лиды</h3>
         {% for alert in alerts.stale_leads %}
-        <div class="alert-danger p-3 rounded mb-2 text-sm">
+        <div class="alert-danger p-3 rounded mb-2 text-sm alert-item{% if ns.idx > 0 %} hidden{% endif %}" data-alert-idx="{{ ns.idx }}">
             <a href="/managers/{{ alert.manager_id }}" class="font-medium hover:underline" style="color: var(--color-primary)">{{ alert.manager_name }}</a>:
             лид «<a href="/leads/{{ alert.lead_id }}/edit" class="hover:underline" style="color: var(--color-primary)">{{ alert.customer }}</a>»
             — последний контакт {{ alert.days_since_update }} дн. назад
         </div>
+        {% set ns.idx = ns.idx + 1 %}
         {% endfor %}
     </div>
     {% endif %}
 
     {% if alerts.missed_followups %}
     <div>
-        <h3 class="text-sm font-medium mb-2" style="color: var(--color-text-secondary)">Пропущенные follow-up'ы</h3>
+        <h3 class="text-sm font-medium mb-2" style="color: var(--color-text-secondary)">Пропущенные задачи</h3>
         {% for alert in alerts.missed_followups %}
-        <div class="alert-warning p-3 rounded mb-2 text-sm">
+        <div class="alert-warning p-3 rounded mb-2 text-sm alert-item{% if ns.idx > 0 %} hidden{% endif %}" data-alert-idx="{{ ns.idx }}">
             <a href="/managers/{{ alert.manager_id }}" class="font-medium hover:underline" style="color: var(--color-primary)">{{ alert.manager_name }}</a>:
             «{{ alert.next_step or 'Следующий шаг' }}» по
             «<a href="/leads/{{ alert.lead_id }}/edit" class="hover:underline" style="color: var(--color-primary)">{{ alert.customer }}</a>»
             — просрочен на {{ alert.days_overdue }} дн.
         </div>
+        {% set ns.idx = ns.idx + 1 %}
         {% endfor %}
     </div>
+    {% endif %}
+
+    {% if alerts.total_count > 1 %}
+    <button onclick="toggleAlerts(this)" data-expanded="" class="text-xs mt-2 px-3 py-1 rounded border hover:opacity-80" style="color: var(--color-primary); border-color: var(--color-primary)">
+        Развернуть все ({{ alerts.total_count }})
+    </button>
+    <script>
+    function toggleAlerts(btn) {
+        var expanded = btn.dataset.expanded === 'true';
+        document.querySelectorAll('.alert-item[data-alert-idx]').forEach(function(el) {
+            if (parseInt(el.dataset.alertIdx) > 0) {
+                el.classList.toggle('hidden', expanded);
+            }
+        });
+        btn.dataset.expanded = expanded ? '' : 'true';
+        btn.textContent = expanded
+            ? 'Развернуть все ({{ alerts.total_count }})'
+            : 'Свернуть';
+    }
+    </script>
     {% endif %}
 </div>
 {% endif %}

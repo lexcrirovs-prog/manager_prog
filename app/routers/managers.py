@@ -17,6 +17,7 @@ from app.services.excel_parser import parse_excel_upload
 from app.services.transcript_parser import parse_transcript
 from app.services.followup_parser import parse_followup_date
 from app.services.priority_parser import detect_lead_priority
+from app.services.auth_service import get_current_user
 
 # Срок follow-up по умолчанию (если дата не найдена в примечании)
 _DEFAULT_FOLLOWUP_WEEKS = 2
@@ -28,6 +29,10 @@ router = APIRouter(prefix="/managers", tags=["managers"])
 def manager_list(request: Request, db: Session = Depends(get_db)):
     """Список всех менеджеров с базовой статистикой."""
     from app.main import templates
+
+    current_user = get_current_user(request, db)
+    if current_user is None:
+        return RedirectResponse("/login", status_code=302)
 
     employees = db.query(Employee).filter(Employee.is_active == True).all()
     stats = {}
@@ -46,6 +51,7 @@ def manager_list(request: Request, db: Session = Depends(get_db)):
 
     return templates.TemplateResponse("manager_list.html", {
         "request": request,
+        "current_user": current_user,
         "employees": employees,
         "stats": stats,
     })
@@ -176,7 +182,7 @@ async def upload_excel(
             db.add(ActionItem(
                 manager_id=manager_id,
                 lead_id=lead.id,
-                title=f"Follow-up: {customer_name}",
+                title=f"Задача: {customer_name}",
                 description=f"Автоматическая задача из отчёта. {date_comment}",
                 status=ActionItemStatus.PENDING,
                 priority=ActionItemPriority.MEDIUM,

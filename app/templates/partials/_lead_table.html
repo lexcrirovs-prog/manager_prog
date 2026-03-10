@@ -4,25 +4,31 @@
         'in_progress': 'background: #dbeafe; color: #2563eb',
         'negotiation': 'background: var(--color-warning-light); color: var(--color-warning)',
         'contract': 'background: #f3e8ff; color: #7c3aed',
+        'deal': 'background: #dcfce7; color: #15803d',
         'won': 'background: var(--color-success-light); color: var(--color-success)',
         'lost': 'background: var(--color-danger-light); color: var(--color-danger)',
         'stale': 'background: #f1f5f9; color: #64748b',
+        'refusal': 'background: #fef2f2; color: #991b1b',
     } %}
     {% set labels = {
         'new': 'Новая',
         'in_progress': 'В работе',
         'negotiation': 'Переговоры',
         'contract': 'Контракт',
+        'deal': 'Сделка',
         'won': 'Выиграна',
         'lost': 'Проиграна',
         'stale': 'Неактивна',
+        'refusal': 'Отказ',
     } %}
     <span class="badge-status" style="{{ colors.get(status.value, '') }}">{{ labels.get(status.value, status.value) }}</span>
 {% endmacro %}
 
 {% macro priority_badge(priority) %}
     {% set pval = priority.value if priority else 'low' %}
-    {% if pval == 'high' %}
+    {% if pval == 'focus' %}
+        <span class="badge-status" style="background:#f3e8ff;color:#7c3aed;font-weight:600;">🎯 Фокус</span>
+    {% elif pval == 'high' %}
         <span class="badge-status" style="background:#fee2e2;color:#dc2626;font-weight:600;">⬆ Высокий</span>
     {% elif pval == 'medium' %}
         <span class="badge-status" style="background:#ffedd5;color:#ea580c;font-weight:600;">➡ Средний</span>

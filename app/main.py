@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
+from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import settings
 from app.database.engine import engine
@@ -38,6 +39,10 @@ def _run_migrations() -> None:
         "ALTER TABLE action_items ADD COLUMN co_manager_id INTEGER REFERENCES employees(id)",
         # priority в leads — приоритет сделки (low/medium/high), дефолт low
         "ALTER TABLE leads ADD COLUMN priority VARCHAR(10) DEFAULT 'low'",
+        # Авторизация: логин, хэш пароля, роль
+        "ALTER TABLE employees ADD COLUMN username VARCHAR(50)",
+        "ALTER TABLE employees ADD COLUMN password_hash VARCHAR(200)",
+        "ALTER TABLE employees ADD COLUMN system_role VARCHAR(20) DEFAULT 'manager'",
     ]
     with engine.connect() as conn:
         for stmt in migrations:
@@ -66,14 +71,18 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Сессии (необходимы для авторизации)
+app.add_middleware(SessionMiddleware, secret_key="sales-manager-secret-key-change-in-prod!")
+
 # Статика и шаблоны
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 # Импорт и подключение роутеров
 from app.routers import dashboard, managers, leads, action_items, knowledge, api  # noqa: E402
-from app.routers import reports  # noqa: E402
+from app.routers import reports, auth  # noqa: E402
 
+app.include_router(auth.router)
 app.include_router(dashboard.router)
 app.include_router(managers.router)
 app.include_router(leads.router)
